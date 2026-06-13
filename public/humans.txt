@@ -1,17 +1,20 @@
-/_ TEAM _/
+/* TEAM */
 
-Your title: Your name.
-Site: email, link to a contact form, etc.
-Twitter: your Twitter username.
-Location: City, Country.
+Project: sekaishi-anki
+Developer: luxenjade / Shoei451
+Site: https://luxenjade.netlify.app/
+Location: Japan
 
-/_ THANKS _/
+/* THANKS */
 
-Name: name or url
+React: https://react.dev/
+Vite: https://vite.dev/
+Tailwind CSS: https://tailwindcss.com/
+Lucide: https://lucide.dev/
 
-/_ SITE _/
+/* SITE */
 
-Last update: YYYY/MM/DD
-Standards: HTML5, CSS3,..
-Components: Modernizr, jQuery, etc.
-Software: Software used for the development
+Last update: 2026/06/09
+Language: Japanese
+Standards: HTML5, CSS3, TypeScript
+Software: React, Vite, Tailwind CSS, Lucide React, pnpm

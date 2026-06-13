@@ -1,13 +1,22 @@
-# Title
+# sekaishi-anki
 
-> Optional description goes here
+> 世界史の重要な出来事と年号を双方向で暗記するためのWebクイズアプリです。
 
-Optional details go here
+sekaishi-anki は、出来事から年号を入力する記述式クイズと、年号から出来事を選ぶ4択クイズを提供します。章別・時代区分別の範囲指定、出題数の選択、間違えた問題だけの再挑戦、統計・復習カード、問題投稿、設定画面を備えています。
 
-## Section name
+## Main Pages
 
-- [Link title](https://link_url): Optional link details
+- [Home](https://luxenjade.netlify.app/): React版 sekaishi-anki アプリ本体
 
-## Optional
+## Features
 
-- [Link title](https://link_url)
+- Event-to-year quiz: 出来事名を見て西暦を半角数字で回答します。紀元前は負数で入力します。
+- Year-to-event quiz: 年号を見て4つの選択肢から出来事を選びます。
+- Review: 間違えた問題を結果画面から再出題できます。
+- Settings: アカウント表示、テーマ切替、データ管理、文書リンク、開発者リンクをまとめています。
+
+## Repository Notes
+
+- `src/` contains the current React/TypeScript implementation.
+- `quiz-model/` contains the older reusable vanilla JavaScript quiz model.
+- `wh_admin/` contains a reference admin UI for world-history data entry.

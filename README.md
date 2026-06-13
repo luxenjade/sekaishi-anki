@@ -1,73 +1,72 @@
-# ShopAdmin Dashboard
+# sekaishi-anki
 
-ShopAdminは、React、TypeScript、Tailwind CSS、およびshadcn/uiを使用して構築された、モダンでレスポンシブな管理者用ダッシュボードのデモアプリケーションです。
+`sekaishi-anki` は、世界史の重要な出来事と年号を効率よく覚えるためのWebクイズアプリです。出来事から年号を答える記述式と、年号から出来事を選ぶ4択式の2モードを備えています。
 
 ## 主な機能
 
-- **売上分析ダッシュボード**: Rechartsを使用した月次売上推移とカテゴリ別売上の可視化。
-- **KPIサマリー**: 総売上、注文数、顧客数、返品率のリアルタイムな要約。
-- **注文管理セクション**: 最近の注文ステータスの確認。
-- **売れ筋商品リスト**: 商品ごとのパフォーマンス追跡。
-- **ダークモード対応**: モダンなデザインとユーザー設定に合わせたテーマ切り替え。
-- **型安全な開発**: 全てのコンポーネントとデータ構造がTypeScriptで定義されています。
+- **双方向クイズ**: 「出来事 -> 年号」と「年号 -> 出来事」の2形式で学習できます。
+- **範囲指定**: 章別、時代区分別に出題範囲を絞れます。
+- **出題数の調整**: 5問、10問、20問、全問から選択できます。
+- **復習機能**: クイズ結果から間違えた問題だけを再挑戦できます。
+- **統計・復習タブ**: 正解率、カテゴリ別の進捗、復習カードのUIを用意しています。
+- **問題投稿タブ**: 世界史データベースへ問題を投稿するためのフォームUIを用意しています。
+- **設定タブ**: アカウント、テーマ、データ削除、文書リンク、開発者リンクを管理できます。
+- **ダークモード**: 設定タブからライト/ダークテーマを切り替えられます。
 
 ## 技術スタック
 
-- **Framework**: [React 19](https://react.dev/) + [Vite](https://vitejs.dev/)
-- **Language**: [TypeScript](https://www.typescriptlang.org/)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-- **UI Components**: [shadcn/ui](https://ui.shadcn.com/)
-- **Icons**: [Lucide React](https://lucide.dev/)
-- **Charts**: [Recharts](https://recharts.org/)
+- **Framework**: React 19 + Vite
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Icons**: Lucide React
+- **Build/Package**: pnpm
 
-## 開発の進捗
+## ディレクトリ概要
 
-このプロジェクトは、元々JSXで記述されていたベースを、より堅牢で保守性の高い開発環境を構築するために**完全にTypeScript (TSX) へ移行**しました。全てのUIコンポーネント（Button, Card, Avatarなど）とビジネスロジックに適切な型定義が追加されています。
+- `src/`: React/TypeScript版のアプリ本体
+- `quiz-model/`: 既存のVanilla JSクイズモデルと設定
+- `wh_admin/`: Supabaseの世界史データを管理するための参考管理画面
+- `public/`: favicon、robots、sitemap、LLM向け説明などの公開ファイル
+- `plan.md`, `plan2.md`: 実装計画メモ
 
 ## セットアップ
 
-### ローカル開発
-
 ```bash
-# 依存関係のインストール
 pnpm install
-
-# 開発サーバーの起動
-npm run dev
+pnpm dev
 ```
 
-### ビルド
+開発サーバーは通常 `http://localhost:5173/` で起動します。
+
+## ビルド
 
 ```bash
-npm run build
+pnpm build
 ```
 
-## Dockerでの実行
+ビルド成果物は `dist/` に出力されます。
 
-このプロジェクトはDockerをサポートしており、開発環境と本番ビルドの両方を簡単に実行できます。
+## Lint
 
-### 開発環境
+```bash
+pnpm lint
+```
 
-ホットリロード（HMR）が有効なコンテナを起動します：
+現在の依存関係では、ESLint 10 と `jiti` の互換性により設定ファイル読み込みで停止する場合があります。その場合は `jiti` の更新が必要です。
+
+## Docker
+
+開発用コンテナ:
 
 ```bash
 docker compose up
 ```
 
-`http://localhost:5173` でアクセス可能です。
-
-### 本番用ビルドと実行
-
-Nginxを使用して静的ファイルを配信する本番用イメージをビルドします：
+本番用イメージ:
 
 ```bash
-docker build -t shadcn-demo:latest .
+docker build -t sekaishi-anki:latest .
+docker run -d -p 8080:80 --name sekaishi-anki-prod sekaishi-anki:latest
 ```
 
-コンテナをポート `8080` で実行：
-
-```bash
-docker run -d -p 8080:80 --name shadcn-demo-prod shadcn-demo:latest
-```
-
-`http://localhost:8080` でアクセス可能です。
+`http://localhost:8080` で静的ビルドを確認できます。
