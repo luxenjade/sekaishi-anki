@@ -1,0 +1,131 @@
+import { ArrowRight, Award, RotateCcw } from "lucide-react";
+import type { QuizMistake, QuizMode } from "../../types/quiz";
+import { formatYear } from "../../lib/quiz";
+
+interface ResultScreenProps {
+  mode: QuizMode;
+  score: number;
+  total: number;
+  mistakes: QuizMistake[];
+  onRetryMistakes: () => void;
+  onFinish: () => void;
+}
+
+export function ResultScreen({
+  mode,
+  score,
+  total,
+  mistakes,
+  onRetryMistakes,
+  onFinish,
+}: ResultScreenProps) {
+  const accuracy = total === 0 ? 0 : Math.round((score / total) * 100);
+
+  return (
+    <div className="w-full bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6 sm:p-8 space-y-8 animate-fadeIn">
+      <div className="text-center space-y-4">
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-amber-500/10 border-2 border-amber-500/20 text-amber-500">
+          <Award className="w-10 h-10" />
+        </div>
+        <div className="space-y-1">
+          <h2 className="text-2xl font-black tracking-tight">
+            Session Complete
+          </h2>
+          <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
+            Performance Analysis
+          </p>
+        </div>
+
+        <div className="inline-grid grid-cols-2 gap-px bg-slate-100 dark:bg-zinc-800 border border-slate-100 dark:border-zinc-800 rounded-2xl overflow-hidden">
+          <div className="bg-white dark:bg-zinc-900 p-4 min-w-[120px]">
+            <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">
+              Score
+            </p>
+            <p className="text-3xl font-black text-amber-500">
+              {score}
+              <span className="text-sm text-slate-300 ml-1">/{total}</span>
+            </p>
+          </div>
+          <div className="bg-white dark:bg-zinc-900 p-4 min-w-[120px]">
+            <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">
+              Accuracy
+            </p>
+            <p className="text-3xl font-black text-emerald-500">
+              {accuracy}
+              <span className="text-sm text-slate-300 ml-1">%</span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {mistakes.length > 0 ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              Review List ({mistakes.length})
+            </h3>
+            <button
+              type="button"
+              className="text-[10px] font-bold text-amber-500 uppercase hover:underline"
+            >
+              Save to Review
+            </button>
+          </div>
+          <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+            {mistakes.map(({ item, userAnswer, correctLabel }, i) => (
+              <div
+                key={i}
+                className="p-4 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-100 dark:border-zinc-800 space-y-2"
+              >
+                <p className="text-xs font-bold text-slate-900 dark:text-zinc-100 leading-tight">
+                  {item.event}
+                </p>
+                <div className="flex items-center gap-4 text-[10px] font-bold">
+                  <span className="text-rose-500 line-through opacity-60">
+                    {userAnswer || "MISS"}
+                  </span>
+                  <ArrowRight className="w-3 h-3 text-slate-300" />
+                  <span className="text-emerald-500 px-1.5 py-0.5 bg-emerald-50 dark:bg-emerald-950/30 rounded border border-emerald-100 dark:border-emerald-900/30">
+                    {mode === "event-to-year"
+                      ? formatYear(item.year)
+                      : item.event}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="p-8 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 text-center space-y-2">
+          <p className="text-2xl">🏆</p>
+          <p className="font-black text-emerald-600 dark:text-emerald-400">
+            Perfect Score!
+          </p>
+          <p className="text-[10px] text-emerald-500/80 font-bold uppercase tracking-widest">
+            Zero Mistakes Identified
+          </p>
+        </div>
+      )}
+
+      <div className="space-y-3 pt-2">
+        {mistakes.length > 0 && (
+          <button
+            type="button"
+            onClick={onRetryMistakes}
+            className="w-full py-4 rounded-xl border border-amber-400 bg-amber-50 hover:bg-amber-100/70 dark:bg-amber-950/10 dark:hover:bg-amber-950/20 text-amber-600 dark:text-amber-400 font-bold text-sm tracking-wide transition flex items-center justify-center gap-2"
+          >
+            <RotateCcw className="w-4 h-4" />
+            Retry Mistakes Only
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onFinish}
+          className="w-full py-4 rounded-xl bg-slate-950 dark:bg-zinc-100 text-white dark:text-zinc-950 hover:bg-slate-800 dark:hover:bg-zinc-200 font-bold text-sm tracking-wide transition shadow-md"
+        >
+          Finish Session
+        </button>
+      </div>
+    </div>
+  );
+}

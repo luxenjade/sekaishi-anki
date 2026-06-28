@@ -1,5 +1,3 @@
-- delete the glowing effects
-
 # Blueprint — 世界史年号暗記 PWA
 
 > ステータス: 設計フェーズ  
