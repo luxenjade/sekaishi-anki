@@ -104,7 +104,7 @@ export function StartScreen({
       <button
         type="button"
         onClick={onStart}
-        className="w-full py-4 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-[0.99] text-white font-bold text-sm tracking-wide shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-2"
+        className="w-full py-4 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-[0.99] text-white font-bold text-sm tracking-wide transition-all flex items-center justify-center gap-2"
       >
         クイズを開始する
         <span aria-hidden>→</span>

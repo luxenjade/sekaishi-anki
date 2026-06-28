@@ -73,7 +73,7 @@ export function StatsTab({
         <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
-              <History className="w-3.5 h-3.5 text-rose-500" />
+              <History className="w-3.5 h-3.5 text-amber-500" />
               Review Queue
             </h3>
             {reviewItems.length > 0 && (
@@ -122,7 +122,7 @@ export function StatsTab({
             <button
               type="button"
               onClick={() => onStartReview(reviewItems)}
-              className="w-full py-3 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold shadow-lg shadow-rose-500/20 active:scale-[0.98] transition"
+              className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold active:scale-[0.98] transition"
             >
               Start Smart Review
             </button>
