@@ -19,6 +19,7 @@ const REGIONS = [
 
 interface SubmitTabProps {
   onSubmit?: (data: SubmitFormState) => void;
+  pastSubmissions?: SubmitFormState[];
 }
 
 export interface SubmitFormState {
@@ -43,7 +44,7 @@ const INITIAL: SubmitFormState = {
   description: "",
 };
 
-export function SubmitTab({ onSubmit }: SubmitTabProps) {
+export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
   const [form, setForm] = useState<SubmitFormState>(INITIAL);
 
   const update = <K extends keyof SubmitFormState>(
@@ -90,7 +91,7 @@ export function SubmitTab({ onSubmit }: SubmitTabProps) {
               value={form.event}
               onChange={(e) => update("event", e.target.value)}
               placeholder="例: ローマ帝国の分裂"
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-bold focus:ring-2 focus:ring-amber-500 outline-none transition"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-bold focus:ring-2 focus:ring-brand-blue outline-none transition"
             />
           </FormRow>
 
@@ -106,7 +107,7 @@ export function SubmitTab({ onSubmit }: SubmitTabProps) {
                   )
                 }
                 placeholder="-221"
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-bold focus:ring-2 focus:ring-amber-500 outline-none transition"
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-bold focus:ring-2 focus:ring-brand-blue outline-none transition"
               />
               <p className="text-[8px] text-slate-400 font-bold uppercase pl-1">
                 Negative = BC
@@ -123,7 +124,7 @@ export function SubmitTab({ onSubmit }: SubmitTabProps) {
                   )
                 }
                 placeholder="395"
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-bold focus:ring-2 focus:ring-amber-500 outline-none transition"
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-bold focus:ring-2 focus:ring-brand-blue outline-none transition"
               />
             </FormRow>
           </div>
@@ -164,8 +165,8 @@ export function SubmitTab({ onSubmit }: SubmitTabProps) {
                   onClick={() => toggleRegion(region)}
                   className={`px-3 py-1.5 rounded-lg border text-[10px] font-bold transition ${
                     form.regions.includes(region)
-                      ? "border-amber-400 bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400"
-                      : "border-slate-200 dark:border-zinc-800 hover:border-amber-400 hover:text-amber-500"
+                      ? "border-brand-blue/40 bg-brand-blue/10 text-brand-blue"
+                      : "border-slate-200 dark:border-zinc-800 hover:border-brand-blue hover:text-brand-blue"
                   }`}
                 >
                   {region}
@@ -181,7 +182,7 @@ export function SubmitTab({ onSubmit }: SubmitTabProps) {
                 value={form.wikipediaUrl}
                 onChange={(e) => update("wikipediaUrl", e.target.value)}
                 placeholder="https://ja.wikipedia.org/wiki/..."
-                className="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-bold focus:ring-2 focus:ring-amber-500 outline-none transition"
+                className="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-bold focus:ring-2 focus:ring-brand-blue outline-none transition"
               />
               <button
                 type="button"
@@ -198,7 +199,7 @@ export function SubmitTab({ onSubmit }: SubmitTabProps) {
               onChange={(e) => update("description", e.target.value)}
               rows={3}
               placeholder="Short summary for the quiz card..."
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-medium focus:ring-2 focus:ring-amber-500 outline-none resize-none transition"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-medium focus:ring-2 focus:ring-brand-blue outline-none resize-none transition"
             />
           </FormRow>
         </div>
@@ -206,11 +207,44 @@ export function SubmitTab({ onSubmit }: SubmitTabProps) {
         <button
           type="button"
           onClick={handleSubmit}
-          className="w-full py-4 rounded-xl bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-black text-sm uppercase tracking-widest shadow-xl active:scale-[0.98] transition"
+          className="w-full py-4 rounded-xl bg-brand-blue hover:bg-brand-sky text-white font-black text-sm uppercase tracking-widest shadow-xl active:scale-[0.98] transition"
         >
           Submit to Database
         </button>
       </div>
+
+      {pastSubmissions.length > 0 && (
+        <div className="bg-white dark:bg-brand-navy-light p-6 rounded-2xl border border-slate-200 dark:border-brand-slate/30 shadow-sm space-y-4">
+          <h3 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+            投稿履歴 ({pastSubmissions.length})
+          </h3>
+          <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+            {pastSubmissions.map((sub, idx) => (
+              <div
+                key={idx}
+                className="p-4 rounded-xl bg-slate-50 dark:bg-brand-navy border border-slate-100 dark:border-brand-slate/20 flex items-center justify-between"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                      {sub.event}
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded bg-brand-blue/15 text-brand-blue border border-brand-blue/20 text-[8px] font-bold">
+                      {sub.year !== null ? (sub.year < 0 ? `前${Math.abs(sub.year)}年` : `${sub.year}年`) : "不明"}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+                    {sub.description || "説明なし"}
+                  </p>
+                </div>
+                <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 text-[8px] font-black uppercase tracking-widest border border-emerald-200 dark:border-emerald-900/30">
+                  Approved
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

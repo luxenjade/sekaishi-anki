@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   AtSign,
   ChevronRight,
@@ -7,7 +8,6 @@ import {
   Globe,
   HelpCircle,
   Info,
-  KeyRound,
   Layout,
   Link as LinkIcon,
   LogOut,
@@ -22,23 +22,34 @@ import {
 import { useTheme } from "../../hooks/useTheme";
 
 interface SettingsTabProps {
-  /** 将来的にSupabaseから取得した値を表示するためのフック */
   account?: {
     username: string;
     email: string;
   };
+  isSynced?: boolean;
   onSignOut?: () => void;
   onDeleteAccount?: () => void;
   onClearData?: () => void;
+  onSaveProfile?: (username: string) => void;
+  onResetPassword?: (email: string) => Promise<{ error: Error | null }>;
+  theme?: "light" | "dark";
+  onChangeTheme?: (theme: "light" | "dark") => void;
 }
 
 export function SettingsTab({
   account = { username: "J. Student", email: "student@example.com" },
+  isSynced = false,
   onSignOut,
   onDeleteAccount,
   onClearData,
+  onSaveProfile,
+  onResetPassword,
+  theme: themeProp,
+  onChangeTheme,
 }: SettingsTabProps) {
-  const { theme, setTheme } = useTheme();
+  const { theme: localTheme, setTheme } = useTheme();
+  const theme = themeProp ?? localTheme;
+  const handleThemeChange = onChangeTheme ?? setTheme;
 
   return (
     <div className="w-full space-y-8 animate-fadeIn">
@@ -53,11 +64,18 @@ export function SettingsTab({
         <AccountSection
           username={account.username}
           email={account.email}
+          isSynced={isSynced}
           onSignOut={onSignOut}
           onDeleteAccount={onDeleteAccount}
+          onSaveProfile={onSaveProfile}
+          onResetPassword={onResetPassword}
         />
 
-        <AppearanceSection theme={theme} onChangeTheme={setTheme} />
+        <AppearanceSection
+          theme={theme}
+          onChangeTheme={handleThemeChange}
+          isSynced={isSynced}
+        />
 
         <DataSection onClear={onClearData} />
 
@@ -76,22 +94,46 @@ export function SettingsTab({
 function AccountSection({
   username,
   email,
+  isSynced,
   onSignOut,
   onDeleteAccount,
+  onSaveProfile,
+  onResetPassword,
 }: {
   username: string;
   email: string;
+  isSynced?: boolean;
   onSignOut?: () => void;
   onDeleteAccount?: () => void;
+  onSaveProfile?: (username: string) => void;
+  onResetPassword?: (email: string) => Promise<{ error: Error | null }>;
 }) {
+  const [usernameInput, setUsernameInput] = useState(username);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setUsernameInput(username);
+  }, [username]);
+
+  const handleResetPassword = async () => {
+    if (!onResetPassword) return;
+    setResetMessage(null);
+    const res = await onResetPassword(email);
+    if (res.error) {
+      setResetMessage(res.error.message);
+    } else {
+      setResetMessage("パスワードリセット用のメールを送信しました。");
+    }
+  };
+
   return (
     <section className="space-y-3">
       <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
         Account
       </h3>
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-slate-100 dark:border-zinc-800 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-950/30 flex items-center justify-center text-amber-600 dark:text-amber-400 text-sm font-black">
+      <div className="bg-white dark:bg-brand-navy-light rounded-2xl border border-slate-200 dark:border-brand-slate/30 shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-slate-100 dark:border-brand-slate/20 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-brand-blue/10 flex items-center justify-center text-brand-blue text-sm font-black">
             {username.slice(0, 2).toUpperCase()}
           </div>
           <div className="min-w-0">
@@ -100,8 +142,12 @@ function AccountSection({
               {email}
             </p>
           </div>
-          <span className="ml-auto px-2 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30 text-[9px] font-black uppercase">
-            Synced
+          <span className={`ml-auto px-2 py-1 rounded-md text-[9px] font-black uppercase border ${
+            isSynced
+              ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30"
+              : "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900/30"
+          }`}>
+            {isSynced ? "Cloud Sync" : "Local Demo"}
           </span>
         </div>
 
@@ -109,43 +155,43 @@ function AccountSection({
           <Field icon={<User className="w-3 h-3" />} label="Display Name">
             <input
               type="text"
-              defaultValue={username}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-bold focus:ring-2 focus:ring-amber-500 outline-none transition"
+              value={usernameInput}
+              onChange={(e) => setUsernameInput(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-brand-slate/30 bg-slate-50 dark:bg-brand-navy text-sm font-bold focus:ring-2 focus:ring-brand-blue outline-none transition"
             />
           </Field>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field icon={<Mail className="w-3 h-3" />} label="Email">
-              <input
-                type="email"
-                defaultValue={email}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-bold focus:ring-2 focus:ring-amber-500 outline-none transition"
-              />
-            </Field>
-            <Field icon={<KeyRound className="w-3 h-3" />} label="Password">
-              <input
-                type="password"
-                placeholder="New password"
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-bold focus:ring-2 focus:ring-amber-500 outline-none transition"
-              />
-            </Field>
-          </div>
+          <Field icon={<Mail className="w-3 h-3" />} label="Email">
+            <input
+              type="email"
+              value={email}
+              readOnly
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-brand-slate/30 bg-slate-100 dark:bg-brand-navy/60 text-sm font-bold text-slate-500 outline-none"
+            />
+          </Field>
+          {resetMessage && (
+            <p className="text-[11px] font-semibold text-brand-blue px-1">{resetMessage}</p>
+          )}
           <div className="flex flex-col sm:flex-row gap-3 pt-1">
             <button
               type="button"
-              className="flex-1 py-3 rounded-xl bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-black text-xs uppercase tracking-widest shadow-md active:scale-[0.98] transition"
+              onClick={() => {
+                if (onSaveProfile) onSaveProfile(usernameInput);
+              }}
+              className="flex-1 py-3 rounded-xl bg-brand-blue hover:bg-brand-sky text-white font-black text-xs uppercase tracking-widest shadow-md active:scale-[0.98] transition"
             >
-              Save Account
+              Save Profile
             </button>
             <button
               type="button"
-              className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 text-slate-500 dark:text-zinc-300 font-black text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-zinc-800 transition"
+              onClick={handleResetPassword}
+              className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-brand-slate/30 text-slate-500 dark:text-zinc-300 font-black text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-brand-navy transition"
             >
-              Send Reset Link
+              Reset Password
             </button>
           </div>
         </div>
 
-        <div className="border-t border-slate-100 dark:border-zinc-800 divide-y divide-slate-100 dark:divide-zinc-800">
+        <div className="border-t border-slate-100 dark:border-brand-slate/20 divide-y divide-slate-100 dark:divide-brand-slate/20">
           <SettingsRow
             icon={<LogOut className="w-4 h-4" />}
             label="Sign Out"
@@ -168,19 +214,21 @@ function AccountSection({
 function AppearanceSection({
   theme,
   onChangeTheme,
+  isSynced,
 }: {
   theme: "light" | "dark";
   onChangeTheme: (t: "light" | "dark") => void;
+  isSynced?: boolean;
 }) {
   return (
     <section className="space-y-3">
       <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
         Appearance
       </h3>
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 p-5 shadow-sm space-y-5">
+      <div className="bg-white dark:bg-brand-navy-light rounded-2xl border border-slate-200 dark:border-brand-slate/30 p-5 shadow-sm space-y-5">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500">
+            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-brand-navy flex items-center justify-center text-slate-500">
               <Palette className="w-4 h-4" />
             </div>
             <div className="text-left">
@@ -196,8 +244,8 @@ function AppearanceSection({
             onClick={() => onChangeTheme(theme === "dark" ? "light" : "dark")}
             className={`w-12 h-6 rounded-full transition-colors relative shrink-0 ${
               theme === "dark"
-                ? "bg-amber-500"
-                : "bg-slate-200 dark:bg-zinc-800"
+                ? "bg-brand-blue"
+                : "bg-slate-200 dark:bg-brand-navy"
             }`}
           >
             <div
@@ -208,7 +256,7 @@ function AppearanceSection({
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 dark:bg-zinc-950 p-1 border border-slate-200 dark:border-zinc-800">
+        <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 dark:bg-brand-navy p-1 border border-slate-200 dark:border-brand-slate/30">
           <ThemeButton
             active={theme === "light"}
             onClick={() => onChangeTheme("light")}
@@ -226,7 +274,7 @@ function AppearanceSection({
         <div className="grid grid-cols-2 gap-3">
           <InfoTile
             icon={<Layout className="w-4 h-4" />}
-            accent="amber"
+            accent="blue"
             label="Layout"
             value="Compact"
           />
@@ -234,7 +282,7 @@ function AppearanceSection({
             icon={<Shield className="w-4 h-4" />}
             accent="emerald"
             label="Privacy"
-            value="Local First"
+            value={isSynced ? "Cloud Sync" : "Local Only"}
           />
         </div>
       </div>
@@ -248,7 +296,7 @@ function DataSection({ onClear }: { onClear?: () => void }) {
       <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
         Data Management
       </h3>
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-brand-navy-light rounded-2xl border border-slate-200 dark:border-brand-slate/30 overflow-hidden shadow-sm">
         <SettingsRow
           icon={<Database className="w-4 h-4" />}
           label="Clear Learning Data"
@@ -260,19 +308,25 @@ function DataSection({ onClear }: { onClear?: () => void }) {
           }
           onClick={onClear}
         />
-        <SettingsRow
-          icon={<Trash2 className="w-4 h-4" />}
-          label="Delete All Data"
-          description="Keep account, remove learning records"
-          danger
-          trailing={
-            <span className="text-[10px] font-bold uppercase tracking-widest">
-              Permanent
-            </span>
-          }
-        />
+        <TrashDataRow />
       </div>
     </section>
+  );
+}
+
+function TrashDataRow() {
+  return (
+    <SettingsRow
+      icon={<Trash2 className="w-4 h-4" />}
+      label="Delete All Data"
+      description="Keep account, remove learning records"
+      danger
+      trailing={
+        <span className="text-[10px] font-bold uppercase tracking-widest">
+          Permanent
+        </span>
+      }
+    />
   );
 }
 
@@ -282,7 +336,7 @@ function DocumentsSection() {
       <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
         Documents
       </h3>
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-brand-navy-light rounded-2xl border border-slate-200 dark:border-brand-slate/30 overflow-hidden shadow-sm">
         <SettingsRow
           icon={<FileText className="w-4 h-4" />}
           label="Privacy Policy"
@@ -325,7 +379,7 @@ function DeveloperSection() {
       href: "https://sekaishi-anki.example.com",
       label: "Website",
       icon: Globe,
-      hover: "hover:text-amber-500 hover:border-amber-500/30",
+      hover: "hover:text-brand-blue hover:border-brand-blue/30",
     },
   ];
   return (
@@ -342,7 +396,7 @@ function DeveloperSection() {
               href={link.href}
               target="_blank"
               rel="noreferrer"
-              className={`p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-500 dark:text-zinc-300 transition-all shadow-sm flex items-center gap-3 ${link.hover}`}
+              className="p-4 rounded-2xl bg-white dark:bg-brand-navy-light border border-slate-200 dark:border-brand-slate/30 text-slate-500 dark:text-zinc-300 transition-all shadow-sm flex items-center gap-3 hover:text-brand-blue hover:border-brand-blue/30"
             >
               <Icon className="w-5 h-5" />
               <span className="text-xs font-black uppercase tracking-widest">
@@ -402,7 +456,7 @@ function SettingsRow({
       className={`w-full px-5 py-4 flex items-center justify-between transition ${
         danger
           ? "hover:bg-rose-50 dark:hover:bg-rose-950/20 text-rose-600 dark:text-rose-400"
-          : "hover:bg-slate-50 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-100"
+          : "hover:bg-slate-50 dark:hover:bg-brand-navy/60 dark:hover:text-zinc-100"
       }`}
     >
       <div className="flex items-center gap-4">
@@ -410,7 +464,7 @@ function SettingsRow({
           className={`w-8 h-8 rounded-lg flex items-center justify-center ${
             danger
               ? "bg-rose-100 dark:bg-rose-950/30"
-              : "bg-slate-100 dark:bg-zinc-800 text-slate-500"
+              : "bg-slate-100 dark:bg-brand-navy text-slate-500"
           }`}
         >
           {icon}
@@ -446,7 +500,7 @@ function ThemeButton({
       onClick={onClick}
       className={`py-2.5 rounded-lg flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest transition ${
         active
-          ? "bg-white dark:bg-zinc-900 text-amber-500 shadow-sm"
+          ? "bg-white dark:bg-brand-navy-light text-brand-blue shadow-sm"
           : "text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200"
       }`}
     >
@@ -465,12 +519,12 @@ function InfoTile({
   icon: React.ReactNode;
   label: string;
   value: string;
-  accent: "amber" | "emerald";
+  accent: "blue" | "emerald";
 }) {
   const accentClass =
-    accent === "amber" ? "text-amber-500" : "text-emerald-500";
+    accent === "blue" ? "text-brand-blue" : "text-emerald-500";
   return (
-    <div className="p-4 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-100 dark:border-zinc-800">
+    <div className="p-4 rounded-xl bg-slate-50 dark:bg-brand-navy border border-slate-100 dark:border-brand-slate/20">
       <div className={`flex items-center gap-2 mb-2 ${accentClass}`}>
         {icon}
         <p className="text-[10px] font-black uppercase tracking-widest">

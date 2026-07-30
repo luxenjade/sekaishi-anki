@@ -1,4 +1,4 @@
-import { ArrowRight, BarChart3, History, PlayCircle } from "lucide-react";
+import { ArrowRight, BarChart3, History, PlayCircle, Trash2 } from "lucide-react";
 import type { HistoryQuizItem } from "../../types/quiz";
 
 interface StatsTabProps {
@@ -12,6 +12,7 @@ interface StatsTabProps {
   accuracyLabel?: string;
   streakLabel?: string;
   rankLabel?: string;
+  onRemoveReviewItem?: (id: string) => void;
 }
 
 export function StatsTab({
@@ -19,6 +20,7 @@ export function StatsTab({
   categoryPerformance,
   onStartReview,
   onStartReviewOne,
+  onRemoveReviewItem,
   totalLabel = "1.2k",
   accuracyLabel = "84%",
   streakLabel = "12d",
@@ -33,7 +35,7 @@ export function StatsTab({
             Overall Learning Progress
           </p>
         </div>
-        <div className="px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-amber-200 dark:border-amber-900/30">
+        <div className="px-3 py-1 bg-brand-blue/10 dark:bg-brand-blue/20 text-brand-blue rounded-lg text-[10px] font-bold uppercase tracking-widest border border-brand-blue/30">
           Rank: {rankLabel}
         </div>
       </div>
@@ -41,13 +43,13 @@ export function StatsTab({
       <div className="grid grid-cols-3 gap-3">
         <StatCard label="Total" value={totalLabel} />
         <StatCard label="Accuracy" value={accuracyLabel} accent="emerald" />
-        <StatCard label="Streak" value={streakLabel} accent="amber" />
+        <StatCard label="Streak" value={streakLabel} accent="blue" />
       </div>
 
       <div className="space-y-6">
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm space-y-6">
+        <div className="bg-white dark:bg-brand-navy-light p-6 rounded-2xl border border-slate-200 dark:border-brand-slate/30 shadow-sm space-y-6">
           <h3 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
-            <BarChart3 className="w-3.5 h-3.5 text-amber-500" />
+            <BarChart3 className="w-3.5 h-3.5 text-brand-blue" />
             Category Performance
           </h3>
           <div className="grid grid-cols-1 gap-4">
@@ -57,11 +59,11 @@ export function StatsTab({
                   <span className="text-slate-600 dark:text-zinc-300">
                     {item.label}
                   </span>
-                  <span className="text-amber-500">{item.val}%</span>
+                  <span className="text-brand-blue">{item.val}%</span>
                 </div>
-                <div className="w-full h-1.5 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-slate-100 dark:bg-brand-navy rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-amber-500 rounded-full"
+                    className="h-full bg-brand-blue rounded-full"
                     style={{ width: `${item.val}%` }}
                   />
                 </div>
@@ -70,17 +72,17 @@ export function StatsTab({
           </div>
         </div>
 
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm space-y-6">
+        <div className="bg-white dark:bg-brand-navy-light p-6 rounded-2xl border border-slate-200 dark:border-brand-slate/30 shadow-sm space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
-              <History className="w-3.5 h-3.5 text-amber-500" />
+              <History className="w-3.5 h-3.5 text-brand-blue" />
               Review Queue
             </h3>
             {reviewItems.length > 0 && (
               <button
                 type="button"
                 onClick={() => onStartReview(reviewItems)}
-                className="text-[10px] font-bold text-amber-500 uppercase tracking-widest hover:underline flex items-center gap-1"
+                className="text-[10px] font-bold text-brand-blue uppercase tracking-widest hover:underline flex items-center gap-1"
               >
                 すべて復習する
                 <ArrowRight className="w-3 h-3" />
@@ -97,7 +99,7 @@ export function StatsTab({
               {reviewItems.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-100 dark:border-zinc-800"
+                  className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-brand-navy border border-slate-100 dark:border-brand-slate/20"
                 >
                   <div className="space-y-0.5 min-w-0">
                     <p className="text-xs font-bold truncate">{item.event}</p>
@@ -105,14 +107,26 @@ export function StatsTab({
                       {item.chapter} · {item.period}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => onStartReviewOne(item)}
-                    className="p-2 rounded-lg bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-amber-500 shadow-sm active:scale-95 transition"
-                    aria-label={`復習開始: ${item.event}`}
-                  >
-                    <PlayCircle className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => onStartReviewOne(item)}
+                      className="p-2 rounded-lg bg-white dark:bg-brand-navy-light border border-slate-200 dark:border-brand-slate/30 text-brand-blue hover:text-brand-sky shadow-sm active:scale-95 transition"
+                      aria-label={`復習開始: ${item.event}`}
+                    >
+                      <PlayCircle className="w-4 h-4" />
+                    </button>
+                    {onRemoveReviewItem && (
+                      <button
+                        type="button"
+                        onClick={() => onRemoveReviewItem(item.id)}
+                        className="p-2 rounded-lg bg-white dark:bg-brand-navy-light border border-slate-200 dark:border-brand-slate/30 text-rose-500 hover:text-rose-600 shadow-sm active:scale-95 transition"
+                        aria-label={`復習削除: ${item.event}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -122,7 +136,7 @@ export function StatsTab({
             <button
               type="button"
               onClick={() => onStartReview(reviewItems)}
-              className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold active:scale-[0.98] transition"
+              className="w-full py-3 rounded-xl bg-brand-blue hover:bg-brand-sky text-white text-xs font-bold active:scale-[0.98] transition"
             >
               Start Smart Review
             </button>
@@ -140,16 +154,16 @@ function StatCard({
 }: {
   label: string;
   value: string;
-  accent?: "emerald" | "amber";
+  accent?: "emerald" | "blue";
 }) {
   const accentClass =
     accent === "emerald"
       ? "text-emerald-500"
-      : accent === "amber"
-        ? "text-amber-500"
+      : accent === "blue"
+        ? "text-brand-blue"
         : "";
   return (
-    <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm text-center">
+    <div className="bg-white dark:bg-brand-navy-light p-4 rounded-2xl border border-slate-200 dark:border-brand-slate/30 shadow-sm text-center">
       <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">
         {label}
       </p>

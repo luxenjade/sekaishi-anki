@@ -52,23 +52,23 @@ export function QuizScreen({
       <div className="space-y-2">
         <div className="flex justify-between items-end text-[10px] text-slate-400 dark:text-zinc-500 font-bold uppercase tracking-wider">
           <span className="truncate max-w-[70%]">{chapterOrPeriod}</span>
-          <span className="text-amber-500">
+          <span className="text-brand-blue">
             {currentIndex + 1}{" "}
             <span className="text-slate-300 dark:text-zinc-700">/</span>{" "}
             {items.length}
           </span>
         </div>
-        <div className="w-full h-1.5 bg-slate-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+        <div className="w-full h-1.5 bg-slate-200 dark:bg-brand-navy rounded-full overflow-hidden">
           <div
-            className="h-full bg-amber-500 rounded-full transition-all duration-300"
+            className="h-full bg-brand-blue rounded-full transition-all duration-300"
             style={{ width: `${progress * 100}%` }}
           />
         </div>
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6 sm:p-8 space-y-6">
+      <div className="bg-white dark:bg-brand-navy-light rounded-2xl border border-slate-200 dark:border-brand-slate/30 shadow-sm p-6 sm:p-8 space-y-6">
         <div className="text-center space-y-2">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-amber-500">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-brand-blue">
             {mode === "event-to-year"
               ? "Question: Event to Year"
               : "Question: Year to Event"}
@@ -78,7 +78,7 @@ export function QuizScreen({
               {current.event}
             </h3>
           ) : (
-            <h3 className="text-4xl sm:text-5xl font-black tracking-tighter py-4 text-amber-500">
+            <h3 className="text-4xl sm:text-5xl font-black tracking-tighter py-4 text-brand-blue">
               {formatYear(current.year)}
             </h3>
           )}
@@ -144,7 +144,7 @@ function TextAnswerForm({
             onChange={(e) => onChange(e.target.value)}
             placeholder="例: 1789 または -221"
             autoFocus
-            className="flex-1 px-4 py-4 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-amber-500 text-center font-bold text-xl tracking-widest"
+            className="flex-1 px-4 py-4 rounded-xl border border-slate-200 dark:border-brand-slate/30 bg-slate-50 dark:bg-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue text-center font-bold text-xl tracking-widest"
           />
           <button
             type="submit"
@@ -179,9 +179,9 @@ function ChoiceList({ choices, onSelect }: ChoiceListProps) {
           key={i}
           type="button"
           onClick={() => onSelect(choice)}
-          className="w-full p-4 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 hover:bg-slate-100 dark:bg-zinc-950 dark:hover:bg-zinc-800/60 dark:hover:border-zinc-700 text-left font-bold text-sm transition-all hover:translate-x-1 active:translate-x-0 duration-150 text-slate-700 dark:text-zinc-200 flex items-start gap-4"
+          className="w-full p-4 rounded-xl border border-slate-200 dark:border-brand-slate/30 bg-slate-50 hover:bg-slate-100 dark:bg-brand-navy dark:hover:bg-brand-navy-light dark:hover:border-brand-slate/40 text-left font-bold text-sm transition-all hover:translate-x-1 active:translate-x-0 duration-150 text-slate-700 dark:text-zinc-200 flex items-start gap-4"
         >
-          <span className="w-6 h-6 rounded-lg bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 flex items-center justify-center text-[10px] text-slate-400 shrink-0 shadow-sm">
+          <span className="w-6 h-6 rounded-lg bg-white dark:bg-brand-navy border border-slate-200 dark:border-brand-slate/30 flex items-center justify-center text-[10px] text-slate-400 shrink-0 shadow-sm">
             {choiceLabel(i)}
           </span>
           <span className="leading-tight">{choice}</span>

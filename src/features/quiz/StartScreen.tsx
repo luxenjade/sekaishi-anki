@@ -1,10 +1,12 @@
 import type { QuizMode } from "../../types/quiz";
-import { chapters, periods } from "../../data/mockEvents";
 
 interface StartScreenProps {
   mode: QuizMode;
   range: string;
   count: number | "all";
+  loading?: boolean;
+  rangeOptions: string[];
+  rangeLabel?: string;
   onChangeMode: (m: QuizMode) => void;
   onChangeRange: (r: string) => void;
   onChangeCount: (c: number | "all") => void;
@@ -17,17 +19,21 @@ export function StartScreen({
   mode,
   range,
   count,
+  loading = false,
+  rangeOptions,
+  rangeLabel,
   onChangeMode,
   onChangeRange,
   onChangeCount,
   onStart,
 }: StartScreenProps) {
-  const rangeOptions = mode === "event-to-year" ? chapters : periods;
+  const defaultRangeLabel =
+    mode === "event-to-year" ? "出題地域" : "時代区分";
 
   return (
-    <div className="w-full bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6 sm:p-8 space-y-6 animate-fadeIn">
+    <div className="w-full bg-white dark:bg-brand-navy-light rounded-2xl border border-slate-200 dark:border-brand-slate/30 shadow-sm p-6 sm:p-8 space-y-6 animate-fadeIn">
       <div className="text-center space-y-2">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/30">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-brand-blue/10 text-brand-blue dark:text-brand-sky border border-brand-blue/20 dark:border-brand-blue/30">
           New Session
         </span>
         <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
@@ -62,12 +68,12 @@ export function StartScreen({
       {/* 範囲選択 */}
       <div className="space-y-2">
         <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">
-          {mode === "event-to-year" ? "Chapter Range" : "Period Range"}
+          {rangeLabel ?? defaultRangeLabel}
         </label>
         <select
           value={range}
           onChange={(e) => onChangeRange(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-amber-400 dark:focus:ring-amber-500 focus:border-transparent transition appearance-none cursor-pointer"
+          className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-brand-slate/30 bg-slate-50 dark:bg-brand-navy text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent transition appearance-none cursor-pointer"
         >
           <option value="all">すべての範囲から出題</option>
           {rangeOptions.map((opt) => (
@@ -91,8 +97,8 @@ export function StartScreen({
               onClick={() => onChangeCount(c)}
               className={`py-2 px-3 rounded-lg border text-xs font-bold transition ${
                 count === c
-                  ? "border-amber-400 bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 ring-1 ring-amber-400"
-                  : "border-slate-200 dark:border-zinc-800 bg-transparent text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200"
+                  ? "border-brand-blue bg-brand-blue/10 text-brand-blue ring-1 ring-brand-blue"
+                  : "border-slate-200 dark:border-brand-slate/30 bg-transparent text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-brand-navy-light dark:hover:text-zinc-200"
               }`}
             >
               {c === "all" ? "全問" : `${c}問`}
@@ -104,10 +110,11 @@ export function StartScreen({
       <button
         type="button"
         onClick={onStart}
-        className="w-full py-4 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-[0.99] text-white font-bold text-sm tracking-wide transition-all flex items-center justify-center gap-2"
+        disabled={loading}
+        className="w-full py-4 rounded-xl bg-brand-blue hover:bg-brand-sky active:scale-[0.99] text-white font-bold text-sm tracking-wide transition-all flex items-center justify-center gap-2 disabled:opacity-50"
       >
-        クイズを開始する
-        <span aria-hidden>→</span>
+        {loading ? "問題データを読み込み中..." : "クイズを開始する"}
+        {!loading && <span aria-hidden>→</span>}
       </button>
     </div>
   );
@@ -127,8 +134,8 @@ function ModeButton({ active, onClick, label, sub }: ModeButtonProps) {
       onClick={onClick}
       className={`flex flex-col items-center justify-center p-4 rounded-xl border text-center transition-all ${
         active
-          ? "border-amber-400 bg-amber-50/50 dark:bg-amber-950/10 text-slate-900 dark:text-zinc-50 shadow-sm ring-1 ring-amber-400"
-          : "border-slate-200 dark:border-zinc-800 bg-transparent text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200"
+          ? "border-brand-blue bg-brand-blue/10 text-slate-900 dark:text-zinc-50 shadow-sm ring-1 ring-brand-blue"
+          : "border-slate-200 dark:border-brand-slate/30 bg-transparent text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-brand-navy-light dark:hover:text-zinc-200"
       }`}
     >
       <span className="font-bold text-sm">{label}</span>

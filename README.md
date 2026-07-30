@@ -1,72 +1,78 @@
 # sekaishi-anki
 
-`sekaishi-anki` は、世界史の重要な出来事と年号を効率よく覚えるためのWebクイズアプリです。出来事から年号を答える記述式と、年号から出来事を選ぶ4択式の2モードを備えています。
+世界史の重要な出来事と年号を効率よく覚えるためのWebクイズアプリです。Supabase 認証でログインすると、復習リスト・統計・設定がクラウドに同期されます。
 
 ## 主な機能
 
-- **双方向クイズ**: 「出来事 -> 年号」と「年号 -> 出来事」の2形式で学習できます。
-- **範囲指定**: 章別、時代区分別に出題範囲を絞れます。
-- **出題数の調整**: 5問、10問、20問、全問から選択できます。
-- **復習機能**: クイズ結果から間違えた問題だけを再挑戦できます。
-- **統計・復習タブ**: 正解率、カテゴリ別の進捗、復習カードのUIを用意しています。
-- **問題投稿タブ**: 世界史データベースへ問題を投稿するためのフォームUIを用意しています。
-- **設定タブ**: アカウント、テーマ、データ削除、文書リンク、開発者リンクを管理できます。
-- **ダークモード**: 設定タブからライト/ダークテーマを切り替えられます。
+- **双方向クイズ**: 「出来事 → 年号」（記述式）と「年号 → 出来事」（4択）
+- **範囲指定**: 章別・時代区分別に出題範囲を絞り込み
+- **アカウント認証**: Supabase Auth（メール + パスワード）
+- **復習キュー**: 間違えた問題を自動保存、正解で卒業
+- **統計・ランク**: 正解率、連続学習日数、ポイント制ランク
+- **問題投稿**: ユーザー投稿を `wh_submissions` に保存（管理者承認フロー）
+- **ダークモード**: プロフィールと連動
 
 ## 技術スタック
 
-- **Framework**: React 19 + Vite
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Icons**: Lucide React
-- **Build/Package**: pnpm
+- React 19 + Vite + TypeScript
+- Tailwind CSS + Lucide React
+- Supabase (Auth, PostgreSQL, RLS)
+- Netlify（静的ホスティング）
 
-## ディレクトリ概要
-
-- `src/`: React/TypeScript版のアプリ本体
-- `quiz-model/`: 既存のVanilla JSクイズモデルと設定
-- `wh_admin/`: Supabaseの世界史データを管理するための参考管理画面
-- `public/`: favicon、robots、sitemap、LLM向け説明などの公開ファイル
-- `plan.md`, `plan2.md`: 実装計画メモ
-
-## セットアップ
+## ローカル開発
 
 ```bash
 pnpm install
+cp .env.example .env
+# .env に Supabase の URL / anon key を設定
 pnpm dev
 ```
 
-開発サーバーは通常 `http://localhost:5173/` で起動します。
+`.env` 未設定時は **デモモード**（localStorage のみ）で動作します。
 
 ## ビルド
 
 ```bash
+pnpm typecheck
 pnpm build
+pnpm preview
 ```
 
-ビルド成果物は `dist/` に出力されます。
+## Supabase セットアップ
 
-## Lint
+詳細は [`supabase/README.md`](supabase/README.md) を参照してください。
 
-```bash
-pnpm lint
-```
+1. Supabase プロジェクトを作成
+2. `supabase/migrations/20260711000000_init.sql` を実行（ユーザー系テーブルのみ）
+3. 問題マスター `wh_dates` / `wh_regions` は [`supabase.sql`](supabase.sql) の既存スキーマを使用
 
-現在の依存関係では、ESLint 10 と `jiti` の互換性により設定ファイル読み込みで停止する場合があります。その場合は `jiti` の更新が必要です。
+## Netlify へのデプロイ
+
+1. GitHub リポジトリを Netlify に接続
+2. ビルド設定（`netlify.toml` 済み）:
+   - Build command: `pnpm run build`
+   - Publish directory: `dist`
+3. **Environment variables** に追加:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+4. Supabase の Redirect URLs に Netlify の URL を登録
+
+SPA ルーティング用のリダイレクトは `netlify.toml` に設定済みです。
+
+## ディレクトリ
+
+| パス | 内容 |
+| ---- | ---- |
+| `src/` | React アプリ本体 |
+| `src/contexts/AuthContext.tsx` | 認証・プロフィール・DB同期 |
+| `src/lib/questions.ts` | 問題データ取得（Supabase → モック fallback） |
+| `supabase/migrations/` | ユーザー系テーブル（profiles 等） |
+| `supabase.sql` | 既存の問題マスタースキーマ |
+| `quiz-model/` | 旧 Vanilla JS クイズ（参考） |
 
 ## Docker
 
-開発用コンテナ:
-
 ```bash
-docker compose up
+docker compose up          # 開発
+docker build -t sekaishi-anki . && docker run -p 8080:80 sekaishi-anki  # 本番確認
 ```
-
-本番用イメージ:
-
-```bash
-docker build -t sekaishi-anki:latest .
-docker run -d -p 8080:80 --name sekaishi-anki-prod sekaishi-anki:latest
-```
-
-`http://localhost:8080` で静的ビルドを確認できます。

@@ -36,7 +36,7 @@ export function BottomNav({ active, onChange }: BottomNavProps) {
               onClick={() => onChange(item.id)}
               className={`flex flex-col items-center gap-1.5 px-4 py-1 rounded-xl transition-all ${
                 isActive
-                  ? "text-amber-500"
+                  ? "text-brand-blue"
                   : "text-slate-400 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-200"
               }`}
             >

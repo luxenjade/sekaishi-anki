@@ -1,6 +1,0 @@
-(function(){const l="qz-choices";window.showChoices=function(e){const n=e.mountId??l,r=document.getElementById(n);if(!r){console.error(`showChoices: #${n} \u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093`);return}r.innerHTML=e.options.map((t,s)=>{const o=typeof t=="object"?t.value:t,c=e.renderChoice?e.renderChoice(t,s):`<span class="qz-choice__text">${a(o)}</span>`;return`
-          <button class="qz-choice" data-index="${s}" data-value="${a(o)}" type="button">
-            <span class="qz-choice__letter">${u(s)}</span>
-            ${c}
-          </button>
-        `}).join(""),r.querySelectorAll(".qz-choice").forEach(t=>{t.addEventListener("click",()=>i(t,e,r))})};function i(e,n,r){const t=r.querySelectorAll(".qz-choice");t.forEach(c=>{c.disabled=!0,c.classList.add("is-locked")});const s=e.dataset.value,o=s===n.correct;t.forEach(c=>{c.dataset.value===n.correct?c.classList.add("is-correct"):c===e&&!o&&c.classList.add("is-incorrect")}),window.enableNextButton?.(),n.onAnswer&&n.onAnswer({selected:s,correct:n.correct,isCorrect:o,buttons:[...t]})}function u(e){return["A","B","C","D","E","F"][e]??String(e+1)}function a(e){return String(e??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}})();
