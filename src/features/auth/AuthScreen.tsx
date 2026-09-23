@@ -58,7 +58,7 @@ export function AuthScreen() {
             <BookOpen className="w-6 h-6" />
           </div>
           <h2 className="text-2xl font-extrabold tracking-tight">
-            {isSignUp ? "アカウント登録" : "世界史年代暗記にログイン"}
+            {isSignUp ? "アカウント登録" : "Sekaish Anki にログイン"}
           </h2>
           <p className="text-xs text-slate-500 dark:text-zinc-400">
             {isSignUp
