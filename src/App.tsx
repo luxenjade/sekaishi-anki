@@ -19,11 +19,7 @@ import {
   type FallbackReason,
   type QuestionSource,
 } from "./lib/questions";
-import {
-  mapWhDateToQuizItem,
-  quizModeToDb,
-  type DbWhDate,
-} from "./lib/database";
+import { mapWhDateToQuizItem, type DbWhDate } from "./lib/database";
 import { getPeriodFromYear } from "./lib/periods";
 import type {
   AppTab,
@@ -188,14 +184,12 @@ export default function App() {
   }, [questionPool, customPool]);
 
   // Quiz state hook
+  // NOTE: quiz.mode はこのセッション内だけの状態として扱う。
+  // 以前は profiles.quiz_mode をDB/localStorageへ永続化し、profile取得のたびに
+  // その値でここへ上書きしていたが、「出題タブでモードを変えた直後にプロフィールが
+  // 再フェッチされて元のモードへ戻る」というバグの温床だった上、そもそも
+  // 端末をまたいで同期する必要性が薄い設定だったため、永続化自体をやめた。
   const quiz = useQuiz({ pool: combinedPool });
-
-  // Sync quiz mode with profile setting
-  useEffect(() => {
-    if (profile?.quizMode && quiz.mode !== profile.quizMode) {
-      quiz.setMode(profile.quizMode);
-    }
-  }, [profile?.quizMode]);
 
   // Load review items from Supabase or LocalStorage on mount / auth change
   useEffect(() => {
@@ -493,26 +487,16 @@ export default function App() {
     }
   };
 
-  /** クイズモードの設定変更 */
-  const handleChangeQuizMode = async (m: import("./types/quiz").QuizMode) => {
+  /** クイズモードの設定変更（セッション内のみ。DB/localStorageへの永続化はしない） */
+  const handleChangeQuizMode = (m: import("./types/quiz").QuizMode) => {
     quiz.setMode(m);
-    if (!isOfflineMode && user) {
-      await supabase
-        .from("profiles")
-        .update({
-          quiz_mode: quizModeToDb(m),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id);
-    } else if (profile) {
-      const updated = { ...profile, quizMode: m };
-      localStorage.setItem("sekaishi-profile", JSON.stringify(updated));
-    }
   };
 
   /** ユーザーからの問題投稿 */
   const handleSubmitSubmission = async (form: any) => {
-    const parsedYear = form.year !== null ? Number(form.year) : 0;
+    // 年号・出来事名のバリデーションは SubmitTab.tsx / AuthContext.submitEvent
+    // 双方で行っているため、ここに到達する時点で form.year は null ではない前提。
+    const parsedYear = Number(form.year);
 
     // Send to Supabase (if online)
     const res = await submitEvent(form);

@@ -31,11 +31,18 @@ export interface AuthContextType {
     password: string,
   ) => Promise<{ error: AuthError | Error | null }>;
   signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<{ error: AuthError | Error | null }>;
+  resetPassword: (
+    email: string,
+  ) => Promise<{ error: AuthError | Error | null }>;
   deleteAccount: () => Promise<{ error: AuthError | Error | null }>;
-  updateProfile: (username: string) => Promise<{ error: AuthError | Error | null }>;
+  updateProfile: (
+    username: string,
+  ) => Promise<{ error: AuthError | Error | null }>;
   updateTheme: (theme: Profile["theme"]) => Promise<void>;
-  syncReviewItem: (item: { id: string }, action: "add" | "remove") => Promise<void>;
+  syncReviewItem: (
+    item: { id: string },
+    action: "add" | "remove",
+  ) => Promise<void>;
   submitEvent: (eventData: {
     event: string;
     year: number | null;
@@ -226,7 +233,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       return { error: null };
     }
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     return { error };
   };
 
@@ -244,7 +254,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const resetPassword = async (email: string) => {
     if (!configured || isOfflineMode) {
-      return { error: new Error("パスワードリセットはオンライン認証が必要です。") };
+      return {
+        error: new Error("パスワードリセットはオンライン認証が必要です。"),
+      };
     }
     const redirectTo = `${window.location.origin}/`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -351,15 +363,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     field?: string;
     regions?: string[];
   }) => {
+    // 防御的バリデーション（多層防御の1つ）。
+    // 本来の入力チェックは SubmitTab.tsx 側のフォームで行うが、
+    // submitEvent は他の呼び出し元からも呼ばれ得るため、ここでも
+    // 空文字・年号未入力の投稿を弾く。DB側にも CHECK 制約を用意しているので
+    // 万一ここを迂回されても wh_submissions への挿入自体が失敗する。
+    const trimmedEvent = eventData.event.trim();
+    if (!trimmedEvent) {
+      return { error: new Error("出来事名を入力してください。") };
+    }
+    if (eventData.year === null || Number.isNaN(eventData.year)) {
+      return { error: new Error("年号を入力してください。") };
+    }
+
     if (!configured || isOfflineMode || !user) {
       return { error: null };
     }
 
     const { error } = await supabase.from("wh_submissions").insert({
       user_id: user.id,
-      year: eventData.year ?? 0,
+      year: eventData.year,
       year_end: eventData.yearEnd ?? null,
-      event: eventData.event,
+      event: trimmedEvent,
       description: eventData.description ?? null,
       region: mapSubmitRegions(eventData.regions ?? []),
       field: eventData.field ? mapSubmitField(eventData.field) : null,
@@ -402,8 +427,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         profileData.streak_best as number,
         streakCurrent,
       );
-      const rankPoints =
-        (profileData.rank_points as number) + score * 10;
+      const rankPoints = (profileData.rank_points as number) + score * 10;
 
       await supabase
         .from("profiles")
