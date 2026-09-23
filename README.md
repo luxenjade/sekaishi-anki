@@ -1,36 +1,32 @@
 # sekaishi-anki
 
-世界史の重要な出来事と年号を効率よく覚えるためのWebクイズアプリです。Supabase 認証でログインすると、復習リスト・統計・設定がクラウドに同期されます。
+A web quiz app for memorizing world-history events and years. Sign in with Supabase Auth to sync your review queue, stats, and settings to the cloud. Without env vars, the app runs in **demo mode** (localStorage only).
 
-## 主な機能
+## Features
 
-- **双方向クイズ**: 「出来事 → 年号」（記述式）と「年号 → 出来事」（4択）
-- **範囲指定**: 章別・時代区分別に出題範囲を絞り込み
-- **アカウント認証**: Supabase Auth（メール + パスワード）
-- **復習キュー**: 間違えた問題を自動保存、正解で卒業
-- **統計・ランク**: 正解率、連続学習日数、ポイント制ランク
-- **問題投稿**: ユーザー投稿を `wh_submissions` に保存（管理者承認フロー）
-- **ダークモード**: プロフィールと連動
+- **Two quiz modes**: event → year (typed input) and year → event (4 choices)
+- **Scope filters**: by region/chapter or by period (derived from year)
+- **Auth**: email + password via Supabase; demo mode when Supabase is not configured
+- **Review queue**: wrong answers are saved; correct answers in a review session graduate them (UI lives under the Stats tab)
+- **Stats & ranks**: accuracy, streak, and point-based ranks synced to `profiles`
+- **Question submissions**: user posts go to `wh_submissions` (pending admin approval outside the app)
+- **Theme**: light / dark, stored on the profile when online
 
-## 技術スタック
+## Stack
 
 - React 19 + Vite + TypeScript
 - Tailwind CSS + Lucide React
 - Supabase (Auth, PostgreSQL, RLS)
-- Netlify（静的ホスティング）
+- Netlify (static hosting)
 
-## ローカル開発
+## Quick start
 
 ```bash
 pnpm install
 cp .env.example .env
-# .env に Supabase の URL / anon key を設定
+# Set VITE_SUPABASE_URL and VITE_SUPABASE_PB_KEY for cloud auth/sync
 pnpm dev
 ```
-
-`.env` 未設定時は **デモモード**（localStorage のみ）で動作します。
-
-## ビルド
 
 ```bash
 pnpm typecheck
@@ -38,41 +34,37 @@ pnpm build
 pnpm preview
 ```
 
-## Supabase セットアップ
+## Documentation
 
-詳細は [`supabase/README.md`](supabase/README.md) を参照してください。
+| Doc                                                    | Topic                                 |
+| ------------------------------------------------------ | ------------------------------------- |
+| [docs/overview.md](docs/overview.md)                   | Product scope, tabs, demo vs cloud    |
+| [docs/quiz.md](docs/quiz.md)                           | Quiz modes, filters, data loading     |
+| [docs/auth-and-sync.md](docs/auth-and-sync.md)         | Auth, profile sync, localStorage keys |
+| [docs/review-and-stats.md](docs/review-and-stats.md)   | Review queue, ranks, category bars    |
+| [docs/submissions.md](docs/submissions.md)             | Submit form and approval status       |
+| [docs/database.md](docs/database.md)                   | Schema, migrations, RLS               |
+| [docs/local-development.md](docs/local-development.md) | Env, scripts, Netlify deploy          |
+| [docs/roadmap.md](docs/roadmap.md)                     | Honest backlog                        |
+| [supabase/README.md](supabase/README.md)               | Supabase setup steps                  |
 
-1. Supabase プロジェクトを作成
-2. `supabase/migrations/20260711000000_init.sql` を実行（ユーザー系テーブルのみ）
-3. 問題マスター `wh_dates` / `wh_regions` は [`supabase.sql`](supabase.sql) の既存スキーマを使用
+Historical Japanese planning notes live under [`docs/archive/`](docs/archive/).
 
-## Netlify へのデプロイ
+## Project layout
 
-1. GitHub リポジトリを Netlify に接続
-2. ビルド設定（`netlify.toml` 済み）:
-   - Build command: `pnpm run build`
-   - Publish directory: `dist`
-3. **Environment variables** に追加:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_PB_KEY`
-4. Supabase の Redirect URLs に Netlify の URL を登録
+| Path                           | Role                                                       |
+| ------------------------------ | ---------------------------------------------------------- |
+| `src/`                         | React app                                                  |
+| `src/contexts/AuthContext.tsx` | Auth, profile, DB sync helpers                             |
+| `src/lib/questions.ts`         | Question fetch (Supabase → mock fallback)                  |
+| `src/features/`                | Quiz, stats, submit, settings, auth screens                |
+| `supabase/migrations/`         | User tables, RLS, submission guardrails                    |
+| `supabase.sql`                 | Existing question master schema (`wh_dates`, `wh_regions`) |
 
-SPA ルーティング用のリダイレクトは `netlify.toml` に設定済みです。
+## Deploy (Netlify)
 
-## ディレクトリ
+1. Connect the repo; `netlify.toml` already sets `pnpm run build` → `dist`.
+2. Set environment variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PB_KEY`.
+3. Add the Netlify URL to Supabase Auth redirect URLs.
 
-| パス                           | 内容                                         |
-| ------------------------------ | -------------------------------------------- |
-| `src/`                         | React アプリ本体                             |
-| `src/contexts/AuthContext.tsx` | 認証・プロフィール・DB同期                   |
-| `src/lib/questions.ts`         | 問題データ取得（Supabase → モック fallback） |
-| `supabase/migrations/`         | ユーザー系テーブル（profiles 等）            |
-| `supabase.sql`                 | 既存の問題マスタースキーマ                   |
-| `quiz-model/`                  | 旧 Vanilla JS クイズ（参考）                 |
-
-## Docker
-
-```bash
-docker compose up          # 開発
-docker build -t sekaishi-anki . && docker run -p 8080:80 sekaishi-anki  # 本番確認
-```
+SPA fallback (`/*` → `/index.html`) is configured in `netlify.toml`.

@@ -50,7 +50,7 @@ export function QuizScreen({
   return (
     <div className="w-full space-y-6 animate-fadeIn">
       <div className="space-y-2">
-        <div className="flex justify-between items-end text-[10px] text-slate-400 dark:text-zinc-500 font-bold uppercase tracking-wider">
+        <div className="flex justify-between items-end text-xs text-slate-400 dark:text-zinc-500 font-bold tracking-wide">
           <span className="truncate max-w-[70%]">{chapterOrPeriod}</span>
           <span className="text-brand-blue">
             {currentIndex + 1}{" "}
@@ -68,10 +68,10 @@ export function QuizScreen({
 
       <div className="bg-white dark:bg-brand-navy-light rounded-2xl border border-slate-200 dark:border-brand-slate/30 shadow-sm p-6 sm:p-8 space-y-6">
         <div className="text-center space-y-2">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-brand-blue">
+          <span className="text-xs font-bold tracking-wide text-brand-blue">
             {mode === "event-to-year"
-              ? "Question: Event to Year"
-              : "Question: Year to Event"}
+              ? "問題: 出来事 → 年号"
+              : "問題: 年号 → 出来事"}
           </span>
           {mode === "event-to-year" ? (
             <h3 className="text-xl sm:text-2xl font-bold leading-relaxed py-4 text-slate-900 dark:text-zinc-100">
@@ -158,7 +158,7 @@ function TextAnswerForm({
             {error}
           </p>
         )}
-        <p className="text-[10px] text-slate-400 text-center font-semibold uppercase tracking-wide">
+        <p className="text-xs text-slate-400 text-center font-semibold tracking-wide">
           ※ 紀元前はマイナス記号 ( - ) をつけて入力
         </p>
       </div>
@@ -181,7 +181,7 @@ function ChoiceList({ choices, onSelect }: ChoiceListProps) {
           onClick={() => onSelect(choice)}
           className="w-full p-4 rounded-xl border border-slate-200 dark:border-brand-slate/30 bg-slate-50 hover:bg-slate-100 dark:bg-brand-navy dark:hover:bg-brand-navy-light dark:hover:border-brand-slate/40 text-left font-bold text-sm transition-all hover:translate-x-1 active:translate-x-0 duration-150 text-slate-700 dark:text-zinc-200 flex items-start gap-4"
         >
-          <span className="w-6 h-6 rounded-lg bg-white dark:bg-brand-navy border border-slate-200 dark:border-brand-slate/30 flex items-center justify-center text-[10px] text-slate-400 shrink-0 shadow-sm">
+          <span className="w-6 h-6 rounded-lg bg-white dark:bg-brand-navy border border-slate-200 dark:border-brand-slate/30 flex items-center justify-center text-xs text-slate-400 shrink-0 shadow-sm">
             {choiceLabel(i)}
           </span>
           <span className="leading-tight">{choice}</span>
@@ -216,7 +216,7 @@ function Feedback({
         <div className="p-5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 flex items-start gap-3">
           <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <p className="font-bold text-sm">Excellent!</p>
+            <p className="font-bold text-sm">正解！</p>
             <p className="text-xs opacity-90 leading-relaxed">
               正解: {formatYear(current.year)} ➔ {current.event}
             </p>
@@ -226,7 +226,7 @@ function Feedback({
         <div className="p-5 rounded-xl border border-rose-500/20 bg-rose-500/10 dark:bg-rose-950/20 text-rose-800 dark:text-rose-300 flex items-start gap-3">
           <XCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <p className="font-bold text-sm">Not quite...</p>
+            <p className="font-bold text-sm">不正解...</p>
             <div className="text-xs opacity-90 space-y-1">
               <p>
                 あなたの回答:{" "}

@@ -42,8 +42,8 @@ export function StartScreen({
   return (
     <div className="w-full bg-white dark:bg-brand-navy-light rounded-2xl border border-slate-200 dark:border-brand-slate/30 shadow-sm p-6 sm:p-8 space-y-6 animate-fadeIn">
       <div className="text-center space-y-2">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-brand-blue/10 text-brand-blue dark:text-brand-sky border border-brand-blue/20 dark:border-brand-blue/30">
-          New Session
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide bg-brand-blue/10 text-brand-blue dark:text-brand-sky border border-brand-blue/20 dark:border-brand-blue/30">
+          新しいセッション
         </span>
         <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
           学習を開始
@@ -56,7 +56,7 @@ export function StartScreen({
       {showUnexpectedFallbackWarning && (
         <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-200 flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-          <div className="text-[11px] leading-relaxed">
+          <div className="text-sm leading-relaxed">
             <p className="font-bold">
               本番データベースへの接続に失敗しています
             </p>
@@ -70,8 +70,8 @@ export function StartScreen({
 
       {/* モード選択 */}
       <div className="space-y-2">
-        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">
-          Mode Selection
+        <label className="text-xs font-bold text-slate-400 tracking-wide px-1">
+          モード選択
         </label>
         <div className="grid grid-cols-2 gap-3">
           <ModeButton
@@ -91,7 +91,7 @@ export function StartScreen({
 
       {/* 範囲選択 */}
       <div className="space-y-2">
-        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">
+        <label className="text-xs font-bold text-slate-400 tracking-wide px-1">
           {rangeLabel ?? defaultRangeLabel}
         </label>
         <select
@@ -110,8 +110,8 @@ export function StartScreen({
 
       {/* 問題数 */}
       <div className="space-y-2">
-        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">
-          Question Count
+        <label className="text-xs font-bold text-slate-400 tracking-wide px-1">
+          問題数
         </label>
         <div className="grid grid-cols-4 gap-2">
           {COUNTS.map((c) => (
@@ -163,9 +163,7 @@ function ModeButton({ active, onClick, label, sub }: ModeButtonProps) {
       }`}
     >
       <span className="font-bold text-sm">{label}</span>
-      <span className="text-[10px] text-slate-400 mt-1 uppercase font-semibold">
-        {sub}
-      </span>
+      <span className="text-xs text-slate-400 mt-1 font-semibold">{sub}</span>
     </button>
   );
 }

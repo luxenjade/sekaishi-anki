@@ -29,12 +29,12 @@ import type {
 
 // helper to get rank based on points
 function getRank(points: number): string {
-  if (points < 100) return "見習い史家 (Apprentice)";
-  if (points < 300) return "初学者 (Novice)";
-  if (points < 700) return "年代記者 (Chronicler)";
-  if (points < 1500) return "歴史家 (Historian)";
-  if (points < 3000) return "碩学 (Scholar)";
-  return "歴史の証人 (Witness)";
+  if (points < 100) return "見習い史家";
+  if (points < 300) return "初学者";
+  if (points < 700) return "年代記者";
+  if (points < 1500) return "歴史家";
+  if (points < 3000) return "碩学";
+  return "歴史の証人";
 }
 
 // helper to map item to category
@@ -581,7 +581,7 @@ export default function App() {
   }, [totalAnswered, totalCorrect]);
 
   const streakLabelText = useMemo(() => {
-    return `${streakCurrent}d`;
+    return `${streakCurrent}日`;
   }, [streakCurrent]);
 
   const rangeOptions = useMemo(
@@ -611,8 +611,8 @@ export default function App() {
     return (
       <div className="min-h-screen bg-[#fafaf8] dark:bg-[#141414] text-[#1a1a1a] dark:text-[#f0f0ec] flex flex-col justify-center items-center font-sans">
         <div className="w-10 h-10 border-4 border-brand-blue border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-xs font-bold text-slate-400 mt-4 tracking-wider uppercase">
-          Loading Session...
+        <p className="text-sm font-bold text-slate-400 mt-4 tracking-wide">
+          読み込み中...
         </p>
       </div>
     );
@@ -703,7 +703,7 @@ export default function App() {
           <SettingsTab
             account={{
               username:
-                profile?.username || user.email?.split("@")[0] || "User",
+                profile?.username || user.email?.split("@")[0] || "ユーザー",
               email: user.email ?? "",
             }}
             isSynced={!isOfflineMode}

@@ -21,41 +21,41 @@ export function StatsTab({
   onStartReview,
   onStartReviewOne,
   onRemoveReviewItem,
-  totalLabel = "1.2k",
-  accuracyLabel = "84%",
-  streakLabel = "12d",
-  rankLabel = "Elite",
+  totalLabel = "0",
+  accuracyLabel = "0%",
+  streakLabel = "0日",
+  rankLabel = "見習い史家",
 }: StatsTabProps) {
   return (
     <div className="w-full space-y-8 animate-fadeIn">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div className="space-y-1">
-          <h2 className="text-2xl font-black tracking-tight">Statistics</h2>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            Overall Learning Progress
+          <h2 className="text-2xl font-black tracking-tight">統計</h2>
+          <p className="text-xs font-bold text-slate-400 tracking-wide">
+            学習の全体進捗
           </p>
         </div>
-        <div className="px-3 py-1 bg-brand-blue/10 dark:bg-brand-blue/20 text-brand-blue rounded-lg text-[10px] font-bold uppercase tracking-widest border border-brand-blue/30">
-          Rank: {rankLabel}
+        <div className="px-3 py-1.5 bg-brand-blue/10 dark:bg-brand-blue/20 text-brand-blue rounded-lg text-xs font-bold tracking-wide border border-brand-blue/30 shrink-0">
+          ランク: {rankLabel}
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <StatCard label="Total" value={totalLabel} />
-        <StatCard label="Accuracy" value={accuracyLabel} accent="emerald" />
-        <StatCard label="Streak" value={streakLabel} accent="blue" />
+        <StatCard label="解答数" value={totalLabel} />
+        <StatCard label="正答率" value={accuracyLabel} accent="emerald" />
+        <StatCard label="連続日数" value={streakLabel} accent="blue" />
       </div>
 
       <div className="space-y-6">
         <div className="bg-white dark:bg-brand-navy-light p-6 rounded-2xl border border-slate-200 dark:border-brand-slate/30 shadow-sm space-y-6">
-          <h3 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+          <h3 className="text-sm font-bold tracking-wide flex items-center gap-2">
             <BarChart3 className="w-3.5 h-3.5 text-brand-blue" />
-            Category Performance
+            カテゴリ別成績
           </h3>
           <div className="grid grid-cols-1 gap-4">
             {categoryPerformance.map((item) => (
               <div key={item.label} className="space-y-2">
-                <div className="flex justify-between text-[10px] font-bold uppercase">
+                <div className="flex justify-between text-xs font-bold">
                   <span className="text-slate-600 dark:text-zinc-300">
                     {item.label}
                   </span>
@@ -74,15 +74,15 @@ export function StatsTab({
 
         <div className="bg-white dark:bg-brand-navy-light p-6 rounded-2xl border border-slate-200 dark:border-brand-slate/30 shadow-sm space-y-6">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+            <h3 className="text-sm font-bold tracking-wide flex items-center gap-2">
               <History className="w-3.5 h-3.5 text-brand-blue" />
-              Review Queue
+              復習リスト
             </h3>
             {reviewItems.length > 0 && (
               <button
                 type="button"
                 onClick={() => onStartReview(reviewItems)}
-                className="text-[10px] font-bold text-brand-blue uppercase tracking-widest hover:underline flex items-center gap-1"
+                className="text-xs font-bold text-brand-blue tracking-wide hover:underline flex items-center gap-1"
               >
                 すべて復習する
                 <ArrowRight className="w-3 h-3" />
@@ -91,7 +91,7 @@ export function StatsTab({
           </div>
 
           {reviewItems.length === 0 ? (
-            <p className="text-xs text-slate-400 font-medium text-center py-6">
+            <p className="text-sm text-slate-400 font-medium text-center py-6">
               復習リストは空です。クイズで間違えた問題がここに追加されます。
             </p>
           ) : (
@@ -102,8 +102,8 @@ export function StatsTab({
                   className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-brand-navy border border-slate-100 dark:border-brand-slate/20"
                 >
                   <div className="space-y-0.5 min-w-0">
-                    <p className="text-xs font-bold truncate">{item.event}</p>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase">
+                    <p className="text-sm font-bold truncate">{item.event}</p>
+                    <p className="text-xs font-bold text-slate-400">
                       {item.chapter} · {item.period}
                     </p>
                   </div>
@@ -136,9 +136,9 @@ export function StatsTab({
             <button
               type="button"
               onClick={() => onStartReview(reviewItems)}
-              className="w-full py-3 rounded-xl bg-brand-blue hover:bg-brand-sky text-white text-xs font-bold active:scale-[0.98] transition"
+              className="w-full py-3 rounded-xl bg-brand-blue hover:bg-brand-sky text-white text-sm font-bold active:scale-[0.98] transition"
             >
-              Start Smart Review
+              スマート復習を開始
             </button>
           )}
         </div>
@@ -164,9 +164,7 @@ function StatCard({
         : "";
   return (
     <div className="bg-white dark:bg-brand-navy-light p-4 rounded-2xl border border-slate-200 dark:border-brand-slate/30 shadow-sm text-center">
-      <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">
-        {label}
-      </p>
+      <p className="text-xs text-slate-400 font-bold mb-1">{label}</p>
       <p className={`text-xl font-black ${accentClass}`}>{value}</p>
     </div>
   );

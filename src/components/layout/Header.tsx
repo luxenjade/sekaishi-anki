@@ -19,12 +19,12 @@ export function Header({ showAbort, onAbort }: HeaderProps) {
             <button
               type="button"
               onClick={onAbort}
-              className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded bg-slate-100 dark:bg-zinc-800 text-slate-500 hover:text-rose-500 transition"
+              className="text-xs font-bold tracking-wide px-2.5 py-1 rounded bg-slate-100 dark:bg-zinc-800 text-slate-500 hover:text-rose-500 transition"
             >
               中止
             </button>
           )}
-          <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-[10px] font-bold text-slate-500">
+          <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-xs font-bold text-slate-500">
             JS
           </div>
         </div>

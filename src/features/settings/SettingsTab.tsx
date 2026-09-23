@@ -37,7 +37,7 @@ interface SettingsTabProps {
 }
 
 export function SettingsTab({
-  account = { username: "J. Student", email: "student@example.com" },
+  account = { username: "デモユーザー", email: "student@example.com" },
   isSynced = false,
   onSignOut,
   onDeleteAccount,
@@ -54,9 +54,9 @@ export function SettingsTab({
   return (
     <div className="w-full space-y-8 animate-fadeIn">
       <div className="space-y-1">
-        <h2 className="text-2xl font-black tracking-tight">Settings</h2>
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-          Account, Theme, Privacy
+        <h2 className="text-2xl font-black tracking-tight">設定</h2>
+        <p className="text-xs font-bold text-slate-400 tracking-wide">
+          アカウント・テーマ・プライバシー
         </p>
       </div>
 
@@ -83,8 +83,8 @@ export function SettingsTab({
 
         <DeveloperSection />
 
-        <p className="text-center text-[10px] font-black text-slate-300 dark:text-zinc-700 uppercase tracking-[0.2em] pt-4">
-          Version 0.2.1-Alpha
+        <p className="text-center text-xs font-bold text-slate-300 dark:text-zinc-700 tracking-wide pt-4">
+          バージョン 0.2.1-Alpha
         </p>
       </div>
     </div>
@@ -128,8 +128,8 @@ function AccountSection({
 
   return (
     <section className="space-y-3">
-      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
-        Account
+      <h3 className="text-xs font-bold text-slate-400 tracking-wide px-1">
+        アカウント
       </h3>
       <div className="bg-white dark:bg-brand-navy-light rounded-2xl border border-slate-200 dark:border-brand-slate/30 shadow-sm overflow-hidden">
         <div className="p-5 border-b border-slate-100 dark:border-brand-slate/20 flex items-center gap-4">
@@ -138,23 +138,21 @@ function AccountSection({
           </div>
           <div className="min-w-0">
             <p className="text-sm font-black">{username}</p>
-            <p className="text-[10px] font-bold text-slate-400 uppercase truncate">
-              {email}
-            </p>
+            <p className="text-xs font-bold text-slate-400 truncate">{email}</p>
           </div>
           <span
-            className={`ml-auto px-2 py-1 rounded-md text-[9px] font-black uppercase border ${
+            className={`ml-auto px-2.5 py-1 rounded-md text-xs font-bold border shrink-0 ${
               isSynced
                 ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30"
                 : "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900/30"
             }`}
           >
-            {isSynced ? "Cloud Sync" : "Local Demo"}
+            {isSynced ? "クラウド同期" : "ローカルデモ"}
           </span>
         </div>
 
         <div className="p-5 space-y-5">
-          <Field icon={<User className="w-3 h-3" />} label="Display Name">
+          <Field icon={<User className="w-3 h-3" />} label="表示名">
             <input
               type="text"
               value={usernameInput}
@@ -162,7 +160,7 @@ function AccountSection({
               className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-brand-slate/30 bg-slate-50 dark:bg-brand-navy text-sm font-bold focus:ring-2 focus:ring-brand-blue outline-none transition"
             />
           </Field>
-          <Field icon={<Mail className="w-3 h-3" />} label="Email">
+          <Field icon={<Mail className="w-3 h-3" />} label="メールアドレス">
             <input
               type="email"
               value={email}
@@ -171,7 +169,7 @@ function AccountSection({
             />
           </Field>
           {resetMessage && (
-            <p className="text-[11px] font-semibold text-brand-blue px-1">
+            <p className="text-xs font-semibold text-brand-blue px-1">
               {resetMessage}
             </p>
           )}
@@ -181,16 +179,16 @@ function AccountSection({
               onClick={() => {
                 if (onSaveProfile) onSaveProfile(usernameInput);
               }}
-              className="flex-1 py-3 rounded-xl bg-brand-blue hover:bg-brand-sky text-white font-black text-xs uppercase tracking-widest shadow-md active:scale-[0.98] transition"
+              className="flex-1 py-3 rounded-xl bg-brand-blue hover:bg-brand-sky text-white font-bold text-sm shadow-md active:scale-[0.98] transition"
             >
-              Save Profile
+              プロフィールを保存
             </button>
             <button
               type="button"
               onClick={handleResetPassword}
-              className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-brand-slate/30 text-slate-500 dark:text-zinc-300 font-black text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-brand-navy transition"
+              className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-brand-slate/30 text-slate-500 dark:text-zinc-300 font-bold text-sm hover:bg-slate-50 dark:hover:bg-brand-navy transition"
             >
-              Reset Password
+              パスワードをリセット
             </button>
           </div>
         </div>
@@ -198,14 +196,14 @@ function AccountSection({
         <div className="border-t border-slate-100 dark:border-brand-slate/20 divide-y divide-slate-100 dark:divide-brand-slate/20">
           <SettingsRow
             icon={<LogOut className="w-4 h-4" />}
-            label="Sign Out"
-            description="End current session"
+            label="ログアウト"
+            description="現在のセッションを終了"
             onClick={onSignOut}
           />
           <SettingsRow
             icon={<Trash2 className="w-4 h-4" />}
-            label="Delete Account"
-            description="Remove profile and saved progress"
+            label="アカウント削除"
+            description="プロフィールと学習データを削除"
             danger
             onClick={onDeleteAccount}
           />
@@ -226,8 +224,8 @@ function AppearanceSection({
 }) {
   return (
     <section className="space-y-3">
-      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
-        Appearance
+      <h3 className="text-xs font-bold text-slate-400 tracking-wide px-1">
+        外観
       </h3>
       <div className="bg-white dark:bg-brand-navy-light rounded-2xl border border-slate-200 dark:border-brand-slate/30 p-5 shadow-sm space-y-5">
         <div className="flex items-center justify-between gap-4">
@@ -236,15 +234,15 @@ function AppearanceSection({
               <Palette className="w-4 h-4" />
             </div>
             <div className="text-left">
-              <p className="text-sm font-bold">Theme</p>
-              <p className="text-[10px] text-slate-400 font-bold uppercase">
-                Switch the app appearance
+              <p className="text-sm font-bold">テーマ</p>
+              <p className="text-xs text-slate-400 font-bold">
+                アプリの見た目を切り替え
               </p>
             </div>
           </div>
           <button
             type="button"
-            aria-label="Toggle dark mode"
+            aria-label="ダークモードを切り替え"
             onClick={() => onChangeTheme(theme === "dark" ? "light" : "dark")}
             className={`w-12 h-6 rounded-full transition-colors relative shrink-0 ${
               theme === "dark"
@@ -265,13 +263,13 @@ function AppearanceSection({
             active={theme === "light"}
             onClick={() => onChangeTheme("light")}
             icon={<Sun className="w-4 h-4" />}
-            label="Light"
+            label="ライト"
           />
           <ThemeButton
             active={theme === "dark"}
             onClick={() => onChangeTheme("dark")}
             icon={<Moon className="w-4 h-4" />}
-            label="Dark"
+            label="ダーク"
           />
         </div>
 
@@ -279,14 +277,14 @@ function AppearanceSection({
           <InfoTile
             icon={<Layout className="w-4 h-4" />}
             accent="blue"
-            label="Layout"
-            value="Compact"
+            label="レイアウト"
+            value="コンパクト"
           />
           <InfoTile
             icon={<Shield className="w-4 h-4" />}
             accent="emerald"
-            label="Privacy"
-            value={isSynced ? "Cloud Sync" : "Local Only"}
+            label="プライバシー"
+            value={isSynced ? "クラウド同期" : "ローカルのみ"}
           />
         </div>
       </div>
@@ -301,17 +299,17 @@ function DataSection({ onClear }: { onClear?: () => void }) {
   // データ削除の入口は1つに統一する。
   return (
     <section className="space-y-3">
-      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
-        Data Management
+      <h3 className="text-xs font-bold text-slate-400 tracking-wide px-1">
+        データ管理
       </h3>
       <div className="bg-white dark:bg-brand-navy-light rounded-2xl border border-slate-200 dark:border-brand-slate/30 overflow-hidden shadow-sm">
         <SettingsRow
           icon={<Database className="w-4 h-4" />}
-          label="Clear Learning Data"
-          description="Reset stats, review queue, and submissions"
+          label="学習データを消去"
+          description="統計・復習リスト・投稿をリセット"
           trailing={
-            <span className="text-[10px] font-bold text-rose-500 uppercase tracking-widest">
-              Reset
+            <span className="text-xs font-bold text-rose-500 tracking-wide">
+              リセット
             </span>
           }
           onClick={onClear}
@@ -324,26 +322,26 @@ function DataSection({ onClear }: { onClear?: () => void }) {
 function DocumentsSection() {
   return (
     <section className="space-y-3">
-      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
-        Documents
+      <h3 className="text-xs font-bold text-slate-400 tracking-wide px-1">
+        ドキュメント
       </h3>
       <div className="bg-white dark:bg-brand-navy-light rounded-2xl border border-slate-200 dark:border-brand-slate/30 overflow-hidden shadow-sm">
         <SettingsRow
           icon={<FileText className="w-4 h-4" />}
-          label="Privacy Policy"
-          description="Data handling and deletion policy"
+          label="プライバシーポリシー"
+          description="データの取り扱いと削除について"
           trailing={<ExternalLink className="w-3.5 h-3.5 text-slate-300" />}
         />
         <SettingsRow
           icon={<Info className="w-4 h-4" />}
-          label="About Sekaishi-Anki"
-          description="Version, roadmap, credits"
+          label="Sekaishi-Anki について"
+          description="バージョン・ロードマップ・クレジット"
           trailing={<ChevronRight className="w-4 h-4 text-slate-300" />}
         />
         <SettingsRow
           icon={<HelpCircle className="w-4 h-4" />}
-          label="Help Center"
-          description="FAQ and support contact"
+          label="ヘルプセンター"
+          description="よくある質問・サポート連絡先"
           trailing={<ChevronRight className="w-4 h-4 text-slate-300" />}
         />
       </div>
@@ -354,20 +352,20 @@ function DocumentsSection() {
 function DeveloperSection() {
   const links = [
     {
-      href: "https://x.com/",
+      href: "https://x.com/luxenjade2",
       label: "Twitter",
       icon: AtSign,
       hover: "hover:text-sky-500 hover:border-sky-500/30",
     },
     {
-      href: "https://github.com/",
+      href: "https://github.com/luxenjade/sekaishi-anki",
       label: "GitHub",
       icon: LinkIcon,
       hover:
         "hover:text-slate-900 dark:hover:text-white hover:border-slate-900/30 dark:hover:border-white/30",
     },
     {
-      href: "https://sekaishi-anki.example.com",
+      href: "https://luxenjade.netlify.app/",
       label: "Website",
       icon: Globe,
       hover: "hover:text-brand-blue hover:border-brand-blue/30",
@@ -375,8 +373,8 @@ function DeveloperSection() {
   ];
   return (
     <section className="space-y-3">
-      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
-        Developer
+      <h3 className="text-xs font-bold text-slate-400 tracking-wide px-1">
+        開発者
       </h3>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {links.map((link) => {
@@ -390,7 +388,7 @@ function DeveloperSection() {
               className="p-4 rounded-2xl bg-white dark:bg-brand-navy-light border border-slate-200 dark:border-brand-slate/30 text-slate-500 dark:text-zinc-300 transition-all shadow-sm flex items-center gap-3 hover:text-brand-blue hover:border-brand-blue/30"
             >
               <Icon className="w-5 h-5" />
-              <span className="text-xs font-black uppercase tracking-widest">
+              <span className="text-sm font-bold tracking-wide">
                 {link.label}
               </span>
             </a>
@@ -414,7 +412,7 @@ function Field({
 }) {
   return (
     <div className="space-y-2">
-      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1 flex items-center gap-1.5">
+      <label className="text-xs font-bold text-slate-400 tracking-wide px-1 flex items-center gap-1.5">
         {icon}
         {label}
       </label>
@@ -463,7 +461,7 @@ function SettingsRow({
         <div className="text-left">
           <p className="text-sm font-bold">{label}</p>
           <p
-            className={`text-[10px] font-bold uppercase ${danger ? "opacity-60" : "text-slate-400"}`}
+            className={`text-xs font-bold ${danger ? "opacity-60" : "text-slate-400"}`}
           >
             {description}
           </p>
@@ -489,7 +487,7 @@ function ThemeButton({
     <button
       type="button"
       onClick={onClick}
-      className={`py-2.5 rounded-lg flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest transition ${
+      className={`py-2.5 rounded-lg flex items-center justify-center gap-2 text-sm font-bold tracking-wide transition ${
         active
           ? "bg-white dark:bg-brand-navy-light text-brand-blue shadow-sm"
           : "text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200"
@@ -518,9 +516,7 @@ function InfoTile({
     <div className="p-4 rounded-xl bg-slate-50 dark:bg-brand-navy border border-slate-100 dark:border-brand-slate/20">
       <div className={`flex items-center gap-2 mb-2 ${accentClass}`}>
         {icon}
-        <p className="text-[10px] font-black uppercase tracking-widest">
-          {label}
-        </p>
+        <p className="text-xs font-bold tracking-wide">{label}</p>
       </div>
       <p className="text-sm font-black">{value}</p>
     </div>

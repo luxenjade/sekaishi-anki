@@ -2,20 +2,20 @@ import { useState } from "react";
 import { Loader2, Search as SearchIcon } from "lucide-react";
 
 const FIELDS = [
-  "Politics",
-  "Economy",
-  "Culture/Religion",
-  "Social",
-  "War/Diplomacy",
-  "Science/Technology",
+  "政治",
+  "経済",
+  "文化・宗教",
+  "社会",
+  "外交・戦争",
+  "科学・技術",
 ];
 const REGIONS = [
-  "East Asia",
-  "Europe",
-  "Middle East",
-  "Americas",
-  "Africa",
-  "South Asia",
+  "東アジア",
+  "ヨーロッパ",
+  "中東",
+  "アメリカ",
+  "アフリカ",
+  "南アジア",
 ];
 
 interface SubmitTabProps {
@@ -39,7 +39,7 @@ const INITIAL: SubmitFormState = {
   year: null,
   yearEnd: null,
   recordType: "event",
-  field: "Politics",
+  field: "政治",
   regions: [],
   wikipediaUrl: "",
   description: "",
@@ -158,7 +158,7 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
   const handleWikipediaSearch = async () => {
     const query = wikiQuery.trim() || form.event.trim();
     if (!query) {
-      setWikiError("検索語（または出来事名）を入力してください。");
+      setWikiError("キーワード（または出来事名）を入力してください。");
       return;
     }
     setWikiLoading(true);
@@ -192,14 +192,11 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
     <div className="w-full space-y-8 animate-fadeIn">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h2 className="text-2xl font-black tracking-tight">Contribution</h2>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            Global Database Submission
+          <h2 className="text-2xl font-black tracking-tight">投稿</h2>
+          <p className="text-xs font-bold text-slate-400 tracking-wide">
+            データベースへの投稿
           </p>
         </div>
-        <span className="px-2 py-0.5 rounded bg-rose-500 text-white text-[8px] font-black uppercase tracking-tighter">
-          Verified Creator
-        </span>
       </div>
 
       <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm space-y-6">
@@ -229,7 +226,7 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
             />
           </div>
 
-          <FormRow label="Event Title" required error={errors.event}>
+          <FormRow label="出来事名" required error={errors.event}>
             <input
               type="text"
               value={form.event}
@@ -244,7 +241,7 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
           </FormRow>
 
           <div className="grid grid-cols-2 gap-4">
-            <FormRow label="Start Year" required error={errors.year}>
+            <FormRow label="開始年" required error={errors.year}>
               <input
                 type="number"
                 value={form.year ?? ""}
@@ -261,11 +258,11 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
                     : "border-slate-200 dark:border-zinc-800"
                 }`}
               />
-              <p className="text-[8px] text-slate-400 font-bold uppercase pl-1">
-                Negative = BC
+              <p className="text-xs text-slate-400 font-bold pl-1">
+                負の数 = 紀元前
               </p>
             </FormRow>
-            <FormRow label="End Year (Optional)">
+            <FormRow label="終了年（任意）">
               <input
                 type="number"
                 value={form.yearEnd ?? ""}
@@ -282,18 +279,18 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <FormRow label="Record Type" required>
+            <FormRow label="記録タイプ" required>
               <select
                 value={form.recordType}
                 onChange={(e) => update("recordType", e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-bold outline-none cursor-pointer"
               >
-                <option value="event">Event</option>
-                <option value="period">Period</option>
-                <option value="person">Person</option>
+                <option value="event">出来事</option>
+                <option value="period">期間</option>
+                <option value="person">人物</option>
               </select>
             </FormRow>
-            <FormRow label="Field Category">
+            <FormRow label="分野">
               <select
                 value={form.field}
                 onChange={(e) => update("field", e.target.value)}
@@ -308,14 +305,14 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
             </FormRow>
           </div>
 
-          <FormRow label="Regions (Multiple)">
+          <FormRow label="地域（複数選択可）">
             <div className="flex flex-wrap gap-2 p-1">
               {REGIONS.map((region) => (
                 <button
                   key={region}
                   type="button"
                   onClick={() => toggleRegion(region)}
-                  className={`px-3 py-1.5 rounded-lg border text-[10px] font-bold transition ${
+                  className={`px-3.5 py-2 rounded-lg border text-sm font-bold transition ${
                     form.regions.includes(region)
                       ? "border-brand-blue/40 bg-brand-blue/10 text-brand-blue"
                       : "border-slate-200 dark:border-zinc-800 hover:border-brand-blue hover:text-brand-blue"
@@ -341,26 +338,26 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
                   type="button"
                   onClick={handleWikipediaSearch}
                   disabled={wikiLoading}
-                  className="px-4 py-2 bg-slate-100 dark:bg-zinc-800 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-zinc-700 transition disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+                  className="px-4 py-2 bg-slate-100 dark:bg-zinc-800 rounded-xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-zinc-700 transition disabled:opacity-50 flex items-center gap-1.5 shrink-0"
                 >
                   {wikiLoading ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
                     <SearchIcon className="w-3.5 h-3.5" />
                   )}
-                  Search
+                  検索
                 </button>
               </div>
               <input
                 type="text"
                 value={wikiQuery}
                 onChange={(e) => setWikiQuery(e.target.value)}
-                placeholder={`検索語を入力（空欄なら「${form.event || "Event Title"}」で検索）`}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[11px] font-medium focus:ring-2 focus:ring-brand-blue outline-none transition"
+                placeholder={`キーワードを入力（空欄なら「${form.event || "出来事名"}」で検索）`}
+                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm font-medium focus:ring-2 focus:ring-brand-blue outline-none transition"
               />
 
               {wikiError && (
-                <p className="text-[10px] font-semibold text-rose-500 px-1">
+                <p className="text-xs font-semibold text-rose-500 px-1">
                   {wikiError}
                 </p>
               )}
@@ -372,10 +369,10 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
                       key={result.url}
                       type="button"
                       onClick={() => pickWikiResult(result)}
-                      className="w-full text-left px-3 py-2 text-[11px] font-semibold hover:bg-slate-50 dark:hover:bg-zinc-800 transition flex items-center justify-between gap-2"
+                      className="w-full text-left px-3 py-2.5 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-zinc-800 transition flex items-center justify-between gap-2"
                     >
                       <span className="truncate">{result.title}</span>
-                      <span className="text-brand-blue text-[9px] font-black uppercase shrink-0">
+                      <span className="text-brand-blue text-xs font-bold shrink-0">
                         選択
                       </span>
                     </button>
@@ -385,12 +382,12 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
             </div>
           </FormRow>
 
-          <FormRow label="Description">
+          <FormRow label="説明">
             <textarea
               value={form.description}
               onChange={(e) => update("description", e.target.value)}
               rows={3}
-              placeholder="Short summary for the quiz card..."
+              placeholder="クイズカード用の短い説明..."
               className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-medium focus:ring-2 focus:ring-brand-blue outline-none resize-none transition"
             />
           </FormRow>
@@ -399,29 +396,29 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
         <button
           type="button"
           onClick={handleSubmit}
-          className="w-full py-4 rounded-xl bg-brand-blue hover:bg-brand-sky text-white font-black text-sm uppercase tracking-widest shadow-xl active:scale-[0.98] transition"
+          className="w-full py-4 rounded-xl bg-brand-blue hover:bg-brand-sky text-white font-black text-sm shadow-xl active:scale-[0.98] transition"
         >
-          Submit to Database
+          データベースに投稿
         </button>
       </div>
 
       {pastSubmissions.length > 0 && (
         <div className="bg-white dark:bg-brand-navy-light p-6 rounded-2xl border border-slate-200 dark:border-brand-slate/30 shadow-sm space-y-4">
-          <h3 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+          <h3 className="text-sm font-bold tracking-wide flex items-center gap-2">
             投稿履歴 ({pastSubmissions.length})
           </h3>
           <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
             {pastSubmissions.map((sub, idx) => (
               <div
                 key={idx}
-                className="p-4 rounded-xl bg-slate-50 dark:bg-brand-navy border border-slate-100 dark:border-brand-slate/20 flex items-center justify-between"
+                className="p-4 rounded-xl bg-slate-50 dark:bg-brand-navy border border-slate-100 dark:border-brand-slate/20 flex items-center justify-between gap-3"
               >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-bold text-slate-900 dark:text-slate-100">
                       {sub.event}
                     </span>
-                    <span className="px-1.5 py-0.5 rounded bg-brand-blue/15 text-brand-blue border border-brand-blue/20 text-[8px] font-bold">
+                    <span className="px-2 py-0.5 rounded bg-brand-blue/15 text-brand-blue border border-brand-blue/20 text-xs font-bold">
                       {sub.year !== null
                         ? sub.year < 0
                           ? `前${Math.abs(sub.year)}年`
@@ -429,12 +426,12 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
                         : "不明"}
                     </span>
                   </div>
-                  <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed">
                     {sub.description || "説明なし"}
                   </p>
                 </div>
-                <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 text-[8px] font-black uppercase tracking-widest border border-emerald-200 dark:border-emerald-900/30">
-                  Approved
+                <span className="px-2.5 py-1 rounded bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-200 dark:border-emerald-900/30 shrink-0">
+                  承認済み
                 </span>
               </div>
             ))}
@@ -458,13 +455,13 @@ function FormRow({
 }) {
   return (
     <div className="space-y-2">
-      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">
+      <label className="text-xs font-bold text-slate-400 tracking-wide px-1">
         {label}
         {required && <span className="text-rose-500"> *</span>}
       </label>
       {children}
       {error && (
-        <p className="text-[10px] font-semibold text-rose-500 px-1">{error}</p>
+        <p className="text-xs font-semibold text-rose-500 px-1">{error}</p>
       )}
     </div>
   );

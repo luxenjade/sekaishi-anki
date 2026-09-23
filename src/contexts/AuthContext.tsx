@@ -123,7 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         .from("profiles")
         .insert({
           id: userId,
-          username: user?.email?.split("@")[0] ?? "User",
+          username: user?.email?.split("@")[0] ?? "ユーザー",
         })
         .select()
         .single();
@@ -188,7 +188,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (savedProfile) {
       setProfile(JSON.parse(savedProfile) as Profile);
     } else {
-      const p = defaultOfflineProfile(mockU.id, "J. Student");
+      const p = defaultOfflineProfile(mockU.id, "デモユーザー");
       setProfile(p);
       localStorage.setItem(OFFLINE_PROFILE_KEY, JSON.stringify(p));
     }
@@ -300,7 +300,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       });
       return { error: null };
     }
-    if (!user) return { error: new Error("Not authenticated") };
+    if (!user) return { error: new Error("認証されていません") };
 
     const { error } = await supabase
       .from("profiles")

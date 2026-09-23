@@ -16,10 +16,10 @@ const NAV_ITEMS: {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
 }[] = [
-  { id: "quiz", label: "Learn", icon: PlayCircle },
-  { id: "stats", label: "Stats", icon: BarChart3 },
-  { id: "submit", label: "Post", icon: PlusSquare },
-  { id: "settings", label: "Config", icon: SettingsIcon },
+  { id: "quiz", label: "学習", icon: PlayCircle },
+  { id: "stats", label: "統計", icon: BarChart3 },
+  { id: "submit", label: "投稿", icon: PlusSquare },
+  { id: "settings", label: "設定", icon: SettingsIcon },
 ];
 
 export function BottomNav({ active, onChange }: BottomNavProps) {
@@ -43,9 +43,7 @@ export function BottomNav({ active, onChange }: BottomNavProps) {
               <Icon
                 className={`w-6 h-6 transition-transform ${isActive ? "scale-110" : ""}`}
               />
-              <span className="text-[9px] font-black uppercase tracking-widest">
-                {item.label}
-              </span>
+              <span className="text-xs font-bold tracking-wide">{item.label}</span>
             </button>
           );
         })}

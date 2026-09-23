@@ -71,7 +71,7 @@ export function AuthScreen() {
           <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-800 dark:text-amber-200 space-y-2">
             <div className="flex items-start gap-2">
               <Info className="w-4 h-4 shrink-0 mt-0.5" />
-              <div className="text-[11px] leading-relaxed">
+              <div className="text-sm leading-relaxed">
                 <p className="font-bold">Supabaseの接続キーが未設定です</p>
                 <p className="opacity-90">
                   `.env` に `VITE_SUPABASE_URL` と `VITE_SUPABASE_PB_KEY`
@@ -104,7 +104,7 @@ export function AuthScreen() {
 
             {isSignUp && (
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest px-1 flex items-center gap-1.5">
+                <label className="text-xs font-bold text-slate-400 dark:text-zinc-500 tracking-wide px-1 flex items-center gap-1.5">
                   <User className="w-3 h-3" />
                   ユーザー名
                 </label>
@@ -113,14 +113,14 @@ export function AuthScreen() {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="例: s_historian"
+                  placeholder="例: sekaishi_taro"
                   className="w-full px-4 py-3 rounded-xl border border-[#e0e0da] dark:border-[#333330] bg-[#fafaf8] dark:bg-[#141414] text-sm font-bold focus:ring-2 focus:ring-brand-blue outline-none transition"
                 />
               </div>
             )}
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest px-1 flex items-center gap-1.5">
+              <label className="text-xs font-bold text-slate-400 dark:text-zinc-500 tracking-wide px-1 flex items-center gap-1.5">
                 <Mail className="w-3 h-3" />
                 メールアドレス
               </label>
@@ -129,14 +129,14 @@ export function AuthScreen() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                placeholder="例: you@example.com"
                 autoComplete="email"
                 className="w-full px-4 py-3 rounded-xl border border-[#e0e0da] dark:border-[#333330] bg-[#fafaf8] dark:bg-[#141414] text-sm font-bold focus:ring-2 focus:ring-brand-blue outline-none transition"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest px-1 flex items-center gap-1.5">
+              <label className="text-xs font-bold text-slate-400 dark:text-zinc-500 tracking-wide px-1 flex items-center gap-1.5">
                 <KeyRound className="w-3 h-3" />
                 パスワード
               </label>
