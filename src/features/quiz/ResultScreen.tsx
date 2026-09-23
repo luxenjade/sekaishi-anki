@@ -64,15 +64,19 @@ export function ResultScreen({
             <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
               Review List ({mistakes.length})
             </h3>
-            <button
-              type="button"
-              className="text-[10px] font-bold text-brand-blue uppercase hover:underline"
-            >
-              Save to Review
-            </button>
+            {/*
+              間違えた問題は App.tsx 側の useEffect で結果画面遷移時に
+              自動的に復習リスト（review_items / localStorage）へ upsert される。
+              以前ここにあった「Save to Review」ボタンは onClick 未配線で
+              何も起きない死んだUIだったため削除し、代わりに自動保存済みである
+              ことを明示するラベルに置き換えた。
+            */}
+            <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wide">
+              自動保存済み
+            </span>
           </div>
           <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
-            {mistakes.map(({ item, userAnswer, correctLabel }, i) => (
+            {mistakes.map(({ item, userAnswer }, i) => (
               <div
                 key={i}
                 className="p-4 rounded-xl bg-slate-50 dark:bg-brand-navy border border-slate-100 dark:border-brand-slate/20 space-y-2"

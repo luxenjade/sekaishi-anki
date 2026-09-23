@@ -4,20 +4,50 @@ import { mapWhDateToQuizItem, type DbWhDate } from "./database";
 import type { HistoryQuizItem, QuizMode } from "../types/quiz";
 
 const PAGE_SIZE = 1000;
+// 異常系（想定外に大量の行が返り続ける等）で無限ループしないための安全上限。
+// wh_dates が現実的な規模を大きく超えた場合はここで打ち切り、警告を出す。
+const MAX_PAGES = 50; // PAGE_SIZE(1000) * 50 = 最大5万件まで取得
 
-export async function fetchQuestions(): Promise<{
+export type QuestionSource = "supabase" | "mock";
+
+/**
+ * mock データへフォールバックした理由。
+ * - "not-configured": Supabase の環境変数が設定されていない（意図的なデモモード）
+ * - "empty": Supabase は設定済みだが wh_dates が空だった（想定外・要調査）
+ * - "error": Supabase への問い合わせ自体が失敗した（想定外・要調査）
+ * - null: フォールバックしていない（source === "supabase"）
+ */
+export type FallbackReason = "not-configured" | "empty" | "error" | null;
+
+export interface FetchQuestionsResult {
   items: HistoryQuizItem[];
-  source: "supabase" | "mock";
-}> {
+  source: QuestionSource;
+  fallbackReason: FallbackReason;
+}
+
+export async function fetchQuestions(): Promise<FetchQuestionsResult> {
   if (!isSupabaseConfigured()) {
-    return { items: mockHistoryData, source: "mock" };
+    return {
+      items: mockHistoryData,
+      source: "mock",
+      fallbackReason: "not-configured",
+    };
   }
 
   try {
     const allRows: DbWhDate[] = [];
     let from = 0;
+    let page = 0;
 
     for (;;) {
+      page += 1;
+      if (page > MAX_PAGES) {
+        console.warn(
+          `wh_dates fetch aborted after ${MAX_PAGES} pages (${allRows.length} rows) — hit MAX_PAGES safety limit.`,
+        );
+        break;
+      }
+
       const { data, error } = await supabase
         .from("wh_dates")
         .select(
@@ -41,14 +71,20 @@ export async function fetchQuestions(): Promise<{
       .filter((item): item is HistoryQuizItem => item !== null);
 
     if (items.length === 0) {
+      // Supabase は設定されているのにデータが無い = 本番のはずが空、はサイレントに
+      // 隠すべきではないバグ状態。呼び出し側（App.tsx）で明示的にユーザーへ知らせる。
       console.warn("wh_dates is empty — falling back to mock data");
-      return { items: mockHistoryData, source: "mock" };
+      return {
+        items: mockHistoryData,
+        source: "mock",
+        fallbackReason: "empty",
+      };
     }
 
-    return { items, source: "supabase" };
+    return { items, source: "supabase", fallbackReason: null };
   } catch (err) {
     console.error("Failed to fetch wh_dates:", err);
-    return { items: mockHistoryData, source: "mock" };
+    return { items: mockHistoryData, source: "mock", fallbackReason: "error" };
   }
 }
 

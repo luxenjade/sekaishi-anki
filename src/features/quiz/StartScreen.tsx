@@ -1,3 +1,4 @@
+import { AlertTriangle } from "lucide-react";
 import type { QuizMode } from "../../types/quiz";
 
 interface StartScreenProps {
@@ -7,6 +8,14 @@ interface StartScreenProps {
   loading?: boolean;
   rangeOptions: string[];
   rangeLabel?: string;
+  /**
+   * true の場合、Supabase は設定済みだが問い合わせが失敗/空だったために
+   * モックデータへフォールバックしている状態。これは「意図的なデモモード」とは
+   * 区別すべき異常系なので、目立つ警告として表示する。
+   * (意図的なデモモード = Supabase未設定 でAuthScreenの「デモモードで続行」を
+   * 選んだ場合。この場合は isSynced=false のバッジで足りるため、ここでは警告しない)
+   */
+  showUnexpectedFallbackWarning?: boolean;
   onChangeMode: (m: QuizMode) => void;
   onChangeRange: (r: string) => void;
   onChangeCount: (c: number | "all") => void;
@@ -22,13 +31,13 @@ export function StartScreen({
   loading = false,
   rangeOptions,
   rangeLabel,
+  showUnexpectedFallbackWarning = false,
   onChangeMode,
   onChangeRange,
   onChangeCount,
   onStart,
 }: StartScreenProps) {
-  const defaultRangeLabel =
-    mode === "event-to-year" ? "出題地域" : "時代区分";
+  const defaultRangeLabel = mode === "event-to-year" ? "出題地域" : "時代区分";
 
   return (
     <div className="w-full bg-white dark:bg-brand-navy-light rounded-2xl border border-slate-200 dark:border-brand-slate/30 shadow-sm p-6 sm:p-8 space-y-6 animate-fadeIn">
@@ -43,6 +52,21 @@ export function StartScreen({
           出来事と年号（西暦）の対応を効率よく暗記するためのスマート学習クイズです。
         </p>
       </div>
+
+      {showUnexpectedFallbackWarning && (
+        <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-200 flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div className="text-[11px] leading-relaxed">
+            <p className="font-bold">
+              本番データベースへの接続に失敗しています
+            </p>
+            <p className="opacity-90">
+              Supabase は設定済みですが wh_dates
+              の取得に失敗、または結果が空だったため、一時的にサンプル問題で表示しています。ネットワークやデータベースの状態を確認してください。
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* モード選択 */}
       <div className="space-y-2">

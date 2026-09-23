@@ -54,21 +54,21 @@ pnpm preview
    - Publish directory: `dist`
 3. **Environment variables** に追加:
    - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_SUPABASE_PB_KEY`
 4. Supabase の Redirect URLs に Netlify の URL を登録
 
 SPA ルーティング用のリダイレクトは `netlify.toml` に設定済みです。
 
 ## ディレクトリ
 
-| パス | 内容 |
-| ---- | ---- |
-| `src/` | React アプリ本体 |
-| `src/contexts/AuthContext.tsx` | 認証・プロフィール・DB同期 |
-| `src/lib/questions.ts` | 問題データ取得（Supabase → モック fallback） |
-| `supabase/migrations/` | ユーザー系テーブル（profiles 等） |
-| `supabase.sql` | 既存の問題マスタースキーマ |
-| `quiz-model/` | 旧 Vanilla JS クイズ（参考） |
+| パス                           | 内容                                         |
+| ------------------------------ | -------------------------------------------- |
+| `src/`                         | React アプリ本体                             |
+| `src/contexts/AuthContext.tsx` | 認証・プロフィール・DB同期                   |
+| `src/lib/questions.ts`         | 問題データ取得（Supabase → モック fallback） |
+| `supabase/migrations/`         | ユーザー系テーブル（profiles 等）            |
+| `supabase.sql`                 | 既存の問題マスタースキーマ                   |
+| `quiz-model/`                  | 旧 Vanilla JS クイズ（参考）                 |
 
 ## Docker
 

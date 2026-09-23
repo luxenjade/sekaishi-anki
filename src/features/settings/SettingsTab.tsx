@@ -142,11 +142,13 @@ function AccountSection({
               {email}
             </p>
           </div>
-          <span className={`ml-auto px-2 py-1 rounded-md text-[9px] font-black uppercase border ${
-            isSynced
-              ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30"
-              : "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900/30"
-          }`}>
+          <span
+            className={`ml-auto px-2 py-1 rounded-md text-[9px] font-black uppercase border ${
+              isSynced
+                ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30"
+                : "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900/30"
+            }`}
+          >
             {isSynced ? "Cloud Sync" : "Local Demo"}
           </span>
         </div>
@@ -169,7 +171,9 @@ function AccountSection({
             />
           </Field>
           {resetMessage && (
-            <p className="text-[11px] font-semibold text-brand-blue px-1">{resetMessage}</p>
+            <p className="text-[11px] font-semibold text-brand-blue px-1">
+              {resetMessage}
+            </p>
           )}
           <div className="flex flex-col sm:flex-row gap-3 pt-1">
             <button
@@ -291,6 +295,10 @@ function AppearanceSection({
 }
 
 function DataSection({ onClear }: { onClear?: () => void }) {
+  // NOTE: 以前ここには機能重複した「Delete All Data」行(TrashDataRow)が
+  // 並んでいたが、onClick が未配線で何も起きない死んだUIだった上に
+  // 下の「Clear Learning Data」と全く同じ操作を指していたため削除した。
+  // データ削除の入口は1つに統一する。
   return (
     <section className="space-y-3">
       <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
@@ -300,7 +308,7 @@ function DataSection({ onClear }: { onClear?: () => void }) {
         <SettingsRow
           icon={<Database className="w-4 h-4" />}
           label="Clear Learning Data"
-          description="Reset stats and review queue"
+          description="Reset stats, review queue, and submissions"
           trailing={
             <span className="text-[10px] font-bold text-rose-500 uppercase tracking-widest">
               Reset
@@ -308,25 +316,8 @@ function DataSection({ onClear }: { onClear?: () => void }) {
           }
           onClick={onClear}
         />
-        <TrashDataRow />
       </div>
     </section>
-  );
-}
-
-function TrashDataRow() {
-  return (
-    <SettingsRow
-      icon={<Trash2 className="w-4 h-4" />}
-      label="Delete All Data"
-      description="Keep account, remove learning records"
-      danger
-      trailing={
-        <span className="text-[10px] font-bold uppercase tracking-widest">
-          Permanent
-        </span>
-      }
-    />
   );
 }
 

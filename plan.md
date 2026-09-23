@@ -90,7 +90,7 @@ export interface HistoryQuizItem {
 ### データ取得とフォールバック
 
 - **Supabaseフェッチ**:
-  - 環境変数 `VITE_SUPABASE_URL` および `VITE_SUPABASE_ANON_KEY` を利用。
+  - 環境変数 `VITE_SUPABASE_URL` および `VITE_SUPABASE_PB_KEY` を利用。
   - 範囲選択に従って `chapter` または `period` でフィルタリングしフェッチ。
 - **ローカルフォールバック**:
   - Supabaseの設定がない、あるいはAPIエラーが発生した場合に備え、`src/data/mockEvents.ts` に代表的な世界史の年代データ（各章・時代区分ごとに数件〜十数件、合計約100件以上）を用意。
@@ -166,7 +166,7 @@ export interface HistoryQuizItem {
 ### 🎯 Phase C: Supabase 基盤整備
 
 - [ ] **C-1**: `@supabase/supabase-js` インストール
-- [ ] **C-2**: `.env.example` 整備 (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`)
+- [ ] **C-2**: `.env.example` 整備 (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PB_KEY`)
 - [ ] **C-3**: `src/lib/supabase.ts` クライアント初期化
 - [ ] **C-4**: `src/lib/questions.ts` リポジトリ層（`fetchQuestions()` 実装、Supabase → モックのフォールバック）
 

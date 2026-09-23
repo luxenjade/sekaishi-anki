@@ -74,7 +74,7 @@ export function AuthScreen() {
               <div className="text-[11px] leading-relaxed">
                 <p className="font-bold">Supabaseの接続キーが未設定です</p>
                 <p className="opacity-90">
-                  `.env` に `VITE_SUPABASE_URL` と `VITE_SUPABASE_ANON_KEY`
+                  `.env` に `VITE_SUPABASE_URL` と `VITE_SUPABASE_PB_KEY`
                   を設定すると本番認証が有効になります。
                 </p>
               </div>
