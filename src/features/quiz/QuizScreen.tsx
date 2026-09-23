@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, ChevronRight, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronRight, X, XCircle } from "lucide-react";
 import type { HistoryQuizItem, QuizMode } from "../../types/quiz";
 import { choiceLabel, formatYear } from "../../lib/quiz";
 
@@ -17,6 +17,7 @@ interface QuizScreenProps {
   onTextAnswer: (input: string) => void;
   onChoiceSelect: (choice: string) => void;
   onNext: () => void;
+  onAbort: () => void;
 }
 
 export function QuizScreen({
@@ -33,6 +34,7 @@ export function QuizScreen({
   onTextAnswer,
   onChoiceSelect,
   onNext,
+  onAbort,
 }: QuizScreenProps) {
   const [draft, setDraft] = useState(userAnswerText);
   const current = items[currentIndex];
@@ -49,14 +51,29 @@ export function QuizScreen({
 
   return (
     <div className="w-full space-y-6 animate-fadeIn">
-      <div className="space-y-2">
-        <div className="flex justify-between items-end text-xs text-slate-400 dark:text-zinc-500 font-bold tracking-wide">
-          <span className="truncate max-w-[70%]">{chapterOrPeriod}</span>
-          <span className="text-brand-blue">
-            {currentIndex + 1}{" "}
-            <span className="text-slate-300 dark:text-zinc-700">/</span>{" "}
-            {items.length}
-          </span>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={onAbort}
+            className="inline-flex items-center justify-center gap-1.5 min-h-11 px-4 rounded-xl border border-slate-200 dark:border-brand-slate/40 bg-white dark:bg-brand-navy-light text-sm font-bold text-slate-600 dark:text-zinc-200 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 dark:hover:border-rose-800 dark:hover:bg-rose-950/30 dark:hover:text-rose-400 active:scale-[0.98] transition shadow-sm"
+          >
+            <X className="w-4 h-4" aria-hidden />
+            クイズを中止
+          </button>
+          <div className="text-right min-w-0">
+            <p className="text-xs font-bold text-slate-400 dark:text-zinc-500 truncate">
+              {chapterOrPeriod}
+            </p>
+            <p className="text-sm font-black text-brand-blue tabular-nums">
+              {currentIndex + 1}
+              <span className="text-slate-300 dark:text-zinc-600 font-bold">
+                {" "}
+                /{" "}
+              </span>
+              {items.length}
+            </p>
+          </div>
         </div>
         <div className="w-full h-1.5 bg-slate-200 dark:bg-brand-navy rounded-full overflow-hidden">
           <div
@@ -70,8 +87,8 @@ export function QuizScreen({
         <div className="text-center space-y-2">
           <span className="text-xs font-bold tracking-wide text-brand-blue">
             {mode === "event-to-year"
-              ? "問題: 出来事 → 年号"
-              : "問題: 年号 → 出来事"}
+              ? "問題: 出来事 → 年代"
+              : "問題: 年代 → 出来事"}
           </span>
           {mode === "event-to-year" ? (
             <h3 className="text-xl sm:text-2xl font-bold leading-relaxed py-4 text-slate-900 dark:text-zinc-100">
@@ -142,7 +159,7 @@ function TextAnswerForm({
             pattern="-?[0-9]*"
             value={draft}
             onChange={(e) => onChange(e.target.value)}
-            placeholder="例: 1789 または -221"
+            placeholder="例: 1789, -221"
             autoFocus
             className="flex-1 px-4 py-4 rounded-xl border border-slate-200 dark:border-brand-slate/30 bg-slate-50 dark:bg-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue text-center font-bold text-xl tracking-widest"
           />
@@ -150,7 +167,7 @@ function TextAnswerForm({
             type="submit"
             className="px-6 rounded-xl bg-slate-900 dark:bg-zinc-100 hover:bg-slate-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-bold transition-all active:scale-[0.98]"
           >
-            確定
+            解答
           </button>
         </div>
         {error && (

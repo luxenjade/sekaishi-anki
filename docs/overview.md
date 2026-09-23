@@ -1,6 +1,6 @@
 # Overview
 
-sekaishi-anki is a mobile-first SPA for drilling world-history years. After authentication (or demo bypass), the shell is a four-tab app with no client-side URL router — navigation is React state only.
+sekaishi-anki is a mobile-first SPA for drilling world-history years. After authentication, the shell is a four-tab app with no client-side URL router — navigation is React state only.
 
 ## Information architecture
 
@@ -11,16 +11,15 @@ sekaishi-anki is a mobile-first SPA for drilling world-history years. After auth
 | **Submit** | Propose new events (`wh_submissions`) |
 | **Settings** | Username, theme, password reset email, clear data, sign-out / delete account |
 
-Unauthenticated users only see `AuthScreen`. There is no separate Review tab (older blueprints assumed five tabs).
+Unauthenticated users only see `AuthScreen`. Supabase env vars are **required** — there is no offline demo mode.
 
-## Demo mode vs cloud
+## Requirements
 
-| | Demo (env unset) | Cloud (env set) |
-| --- | --- | --- |
-| Entry | “Continue in demo mode” on AuthScreen | Email + password sign-in / sign-up |
-| User | Mock `offline-user` via `bypassAuth()` | Supabase Auth session |
-| Questions | `src/data/mockEvents.ts` | `wh_dates` (mock fallback on empty/error) |
-| Progress | localStorage only | `profiles`, `review_items`, `wh_submissions` (+ localStorage mirrors) |
+| | |
+| --- | --- |
+| Auth | Supabase Auth (email + password) |
+| Questions | `wh_dates` via Supabase (empty/error blocks quiz start) |
+| Progress | `profiles`, `review_items`, `wh_submissions` |
 
 Configured via `VITE_SUPABASE_URL` and `VITE_SUPABASE_PB_KEY`. See [auth-and-sync.md](auth-and-sync.md) and [local-development.md](local-development.md).
 

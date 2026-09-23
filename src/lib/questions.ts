@@ -1,37 +1,21 @@
 import { supabase, isSupabaseConfigured } from "./supabase";
-import { mockHistoryData } from "../data/mockEvents";
 import { mapWhDateToQuizItem, type DbWhDate } from "./database";
 import type { HistoryQuizItem, QuizMode } from "../types/quiz";
 
 const PAGE_SIZE = 1000;
 // 異常系（想定外に大量の行が返り続ける等）で無限ループしないための安全上限。
-// wh_dates が現実的な規模を大きく超えた場合はここで打ち切り、警告を出す。
 const MAX_PAGES = 50; // PAGE_SIZE(1000) * 50 = 最大5万件まで取得
 
-export type QuestionSource = "supabase" | "mock";
-
-/**
- * mock データへフォールバックした理由。
- * - "not-configured": Supabase の環境変数が設定されていない（意図的なデモモード）
- * - "empty": Supabase は設定済みだが wh_dates が空だった（想定外・要調査）
- * - "error": Supabase への問い合わせ自体が失敗した（想定外・要調査）
- * - null: フォールバックしていない（source === "supabase"）
- */
-export type FallbackReason = "not-configured" | "empty" | "error" | null;
+export type QuestionsLoadError = "not-configured" | "empty" | "error" | null;
 
 export interface FetchQuestionsResult {
   items: HistoryQuizItem[];
-  source: QuestionSource;
-  fallbackReason: FallbackReason;
+  error: QuestionsLoadError;
 }
 
 export async function fetchQuestions(): Promise<FetchQuestionsResult> {
   if (!isSupabaseConfigured()) {
-    return {
-      items: mockHistoryData,
-      source: "mock",
-      fallbackReason: "not-configured",
-    };
+    return { items: [], error: "not-configured" };
   }
 
   try {
@@ -71,29 +55,21 @@ export async function fetchQuestions(): Promise<FetchQuestionsResult> {
       .filter((item): item is HistoryQuizItem => item !== null);
 
     if (items.length === 0) {
-      // Supabase は設定されているのにデータが無い = 本番のはずが空、はサイレントに
-      // 隠すべきではないバグ状態。呼び出し側（App.tsx）で明示的にユーザーへ知らせる。
-      console.warn("wh_dates is empty — falling back to mock data");
-      return {
-        items: mockHistoryData,
-        source: "mock",
-        fallbackReason: "empty",
-      };
+      console.warn("wh_dates is empty");
+      return { items: [], error: "empty" };
     }
 
-    return { items, source: "supabase", fallbackReason: null };
+    return { items, error: null };
   } catch (err) {
     console.error("Failed to fetch wh_dates:", err);
-    return { items: mockHistoryData, source: "mock", fallbackReason: "error" };
+    return { items: [], error: "error" };
   }
 }
 
 export async function fetchQuestionsByYear(
   year: number,
 ): Promise<HistoryQuizItem[]> {
-  if (!isSupabaseConfigured()) {
-    return mockHistoryData.filter((item) => item.year === year);
-  }
+  if (!isSupabaseConfigured()) return [];
 
   const { data, error } = await supabase
     .from("wh_dates")
@@ -103,9 +79,7 @@ export async function fetchQuestionsByYear(
     .eq("year", year)
     .eq("record_type", "event");
 
-  if (error || !data?.length) {
-    return mockHistoryData.filter((item) => item.year === year);
-  }
+  if (error || !data?.length) return [];
 
   return (data as DbWhDate[])
     .map(mapWhDateToQuizItem)

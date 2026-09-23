@@ -8,7 +8,6 @@ import { StatsTab } from "./features/stats/StatsTab";
 import { SubmitTab } from "./features/submit/SubmitTab";
 import { SettingsTab } from "./features/settings/SettingsTab";
 import { AuthScreen } from "./features/auth/AuthScreen";
-import { mockHistoryData } from "./data/mockEvents";
 import { useQuiz } from "./hooks/useQuiz";
 import { useTheme } from "./hooks/useTheme";
 import { useAuth } from "./contexts/AuthContext";
@@ -16,18 +15,15 @@ import { supabase } from "./lib/supabase";
 import {
   fetchQuestions,
   getRangeOptions,
-  type FallbackReason,
-  type QuestionSource,
+  type QuestionsLoadError,
 } from "./lib/questions";
 import { mapWhDateToQuizItem, type DbWhDate } from "./lib/database";
-import { getPeriodFromYear } from "./lib/periods";
 import type {
   AppTab,
   HistoryQuizItem,
   QuizScreen as QuizScreenType,
 } from "./types/quiz";
 
-// helper to get rank based on points
 function getRank(points: number): string {
   if (points < 100) return "見習い史家";
   if (points < 300) return "初学者";
@@ -37,7 +33,6 @@ function getRank(points: number): string {
   return "歴史の証人";
 }
 
-// helper to map item to category
 function getCategoryName(item: HistoryQuizItem): string {
   const ch = item.chapter || "";
   if (ch.includes("古代文明")) return "古代文明";
@@ -54,54 +49,11 @@ function getCategoryName(item: HistoryQuizItem): string {
   return "イスラーム・アジア・他";
 }
 
-// helper to map year to periods — see lib/periods.ts
-
-// helper to calculate consecutive streak
-function calculateStreak(historyRecords: { date: string }[]): number {
-  if (historyRecords.length === 0) return 0;
-
-  const dates = Array.from(new Set(historyRecords.map((r) => r.date)))
-    .sort()
-    .reverse();
-
-  if (dates.length === 0) return 0;
-
-  const todayStr = new Date().toLocaleDateString("en-CA");
-  const yesterdayStr = new Date(Date.now() - 86400000).toLocaleDateString(
-    "en-CA",
-  );
-
-  if (dates[0] !== todayStr && dates[0] !== yesterdayStr) {
-    return 0;
-  }
-
-  let streak = 1;
-  let currentDate = new Date(dates[0]);
-
-  for (let i = 1; i < dates.length; i++) {
-    const prevDateStr = dates[i];
-    const expectedPrevDateStr = new Date(
-      currentDate.getTime() - 86400000,
-    ).toLocaleDateString("en-CA");
-    if (prevDateStr === expectedPrevDateStr) {
-      streak++;
-      currentDate = new Date(prevDateStr);
-    } else {
-      break;
-    }
-  }
-
-  return streak;
-}
-
-const SAMPLE_REVIEWS: HistoryQuizItem[] = [];
-
 export default function App() {
   const {
     user,
     profile,
     loading,
-    isOfflineMode,
     updateProfile,
     updateTheme,
     syncReviewItem,
@@ -115,40 +67,25 @@ export default function App() {
   const { theme, setTheme } = useTheme(profile?.theme);
 
   const [activeTab, setActiveTab] = useState<AppTab>("quiz");
-  const [questionPool, setQuestionPool] =
-    useState<HistoryQuizItem[]>(mockHistoryData);
+  const [questionPool, setQuestionPool] = useState<HistoryQuizItem[]>([]);
   const [questionsLoading, setQuestionsLoading] = useState(true);
-  const [questionSource, setQuestionSource] = useState<QuestionSource>("mock");
-  // Supabase が設定済みなのに wh_dates の取得が失敗/空だった場合の理由。
-  // "not-configured"（意図的なデモモード）は警告バナーの対象外にする。
-  const [fallbackReason, setFallbackReason] = useState<FallbackReason>(null);
+  const [questionsError, setQuestionsError] =
+    useState<QuestionsLoadError>(null);
 
-  // Local Review Items state
-  const [reviewItems, setReviewItems] =
-    useState<HistoryQuizItem[]>(SAMPLE_REVIEWS);
+  const [reviewItems, setReviewItems] = useState<HistoryQuizItem[]>([]);
 
-  // Custom Pool state (submissions that are approved/active)
-  const [customPool, setCustomPool] = useState<HistoryQuizItem[]>(() => {
-    const saved = localStorage.getItem("sekaishi-custom-pool");
-    if (saved) return JSON.parse(saved);
-    return [];
-  });
-
-  // User Submissions History
   const [submissions, setSubmissions] = useState<any[]>(() => {
     const saved = localStorage.getItem("sekaishi-submissions");
     if (saved) return JSON.parse(saved);
     return [];
   });
 
-  // Play history (mostly for offline mode, synced to localStorage)
   const [history, setHistory] = useState<any[]>(() => {
     const saved = localStorage.getItem("sekaishi-history");
     if (saved) return JSON.parse(saved);
     return [];
   });
 
-  // Category stats (mostly for offline fallback, synced to localStorage)
   const [categoryStats, setCategoryStats] = useState<{
     [cat: string]: { answered: number; correct: number };
   }>(() => {
@@ -157,19 +94,16 @@ export default function App() {
     return {};
   });
 
-  // Review session state
   const [isReviewSession, setIsReviewSession] = useState(false);
 
-  // Load question master data from Supabase (fallback: mock)
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setQuestionsLoading(true);
-      const { items, source, fallbackReason: reason } = await fetchQuestions();
+      const { items, error } = await fetchQuestions();
       if (!cancelled) {
         setQuestionPool(items);
-        setQuestionSource(source);
-        setFallbackReason(reason);
+        setQuestionsError(error);
         setQuestionsLoading(false);
       }
     })();
@@ -178,28 +112,11 @@ export default function App() {
     };
   }, []);
 
-  // Combined pool
-  const combinedPool = useMemo(() => {
-    return [...questionPool, ...customPool];
-  }, [questionPool, customPool]);
+  const quiz = useQuiz({ pool: questionPool });
 
-  // Quiz state hook
-  // NOTE: quiz.mode はこのセッション内だけの状態として扱う。
-  // 以前は profiles.quiz_mode をDB/localStorageへ永続化し、profile取得のたびに
-  // その値でここへ上書きしていたが、「出題タブでモードを変えた直後にプロフィールが
-  // 再フェッチされて元のモードへ戻る」というバグの温床だった上、そもそも
-  // 端末をまたいで同期する必要性が薄い設定だったため、永続化自体をやめた。
-  const quiz = useQuiz({ pool: combinedPool });
-
-  // Load review items from Supabase or LocalStorage on mount / auth change
   useEffect(() => {
     const loadReviews = async () => {
       if (!user) return;
-      if (isOfflineMode) {
-        const saved = localStorage.getItem("sekaishi-reviews");
-        if (saved) setReviewItems(JSON.parse(saved));
-        return;
-      }
       try {
         const { data, error } = await supabase
           .from("review_items")
@@ -226,17 +143,11 @@ export default function App() {
     if (user) {
       loadReviews();
     }
-  }, [user, isOfflineMode]);
+  }, [user]);
 
-  // Load submissions from Supabase or LocalStorage
   useEffect(() => {
     const loadSubmissions = async () => {
       if (!user) return;
-      if (isOfflineMode) {
-        const saved = localStorage.getItem("sekaishi-submissions");
-        if (saved) setSubmissions(JSON.parse(saved));
-        return;
-      }
       try {
         const { data, error } = await supabase
           .from("wh_submissions")
@@ -256,25 +167,22 @@ export default function App() {
     if (user) {
       loadSubmissions();
     }
-  }, [user, isOfflineMode]);
+  }, [user]);
 
   const [prevScreen, setPrevScreen] = useState<QuizScreenType>("start");
 
-  // Track session ending and log progress
   useEffect(() => {
     if (prevScreen === "quiz" && quiz.screen === "result") {
       const total = quiz.items.length;
       const score = quiz.score;
       const today = new Date().toLocaleDateString("en-CA");
 
-      // Update local history
       const newHistory = [...history, { date: today, score, total }];
       setHistory(newHistory);
       localStorage.setItem("sekaishi-history", JSON.stringify(newHistory));
 
       saveQuizResults(score, total, quiz.mistakes);
 
-      // Local Stats Backup Update
       setCategoryStats((prev) => {
         const updated = { ...prev };
         quiz.items.forEach((item) => {
@@ -295,7 +203,6 @@ export default function App() {
         return updated;
       });
 
-      // Update local review queue backup (if it was NOT a review session)
       if (!isReviewSession) {
         setReviewItems((prev) => {
           const updated = [...prev];
@@ -325,7 +232,6 @@ export default function App() {
     saveQuizResults,
   ]);
 
-  // Remove correctly answered questions from review queue in real-time
   useEffect(() => {
     if (
       isReviewSession &&
@@ -335,10 +241,7 @@ export default function App() {
     ) {
       const currentItem = quiz.items[quiz.currentIndex];
       if (currentItem) {
-        // Sync to Supabase
         syncReviewItem(currentItem, "remove");
-
-        // Sync local queue
         setReviewItems((prev) => {
           const updated = prev.filter((item) => item.id !== currentItem.id);
           localStorage.setItem("sekaishi-reviews", JSON.stringify(updated));
@@ -377,7 +280,6 @@ export default function App() {
     }
   };
 
-  /** 復習リスト全体からクイズを開始 */
   const handleStartReview = (items: HistoryQuizItem[]) => {
     setIsReviewSession(true);
     const started = quiz.startQuizWithItems(items);
@@ -388,7 +290,6 @@ export default function App() {
     setActiveTab("quiz");
   };
 
-  /** 個別の復習問題を1問だけのクイズとして開始 */
   const handleStartReviewOne = (item: HistoryQuizItem) => {
     setIsReviewSession(true);
     const started = quiz.startQuizWithItems([item]);
@@ -399,7 +300,6 @@ export default function App() {
     setActiveTab("quiz");
   };
 
-  /** 手動で復習アイテムを削除 */
   const handleRemoveReviewItem = (id: string) => {
     const item = reviewItems.find((ri) => ri.id === id);
     if (item) {
@@ -412,7 +312,6 @@ export default function App() {
     });
   };
 
-  /** アカウント情報の保存 */
   const handleSaveProfile = async (username: string) => {
     const res = await updateProfile(username);
     if (res.error) {
@@ -445,7 +344,6 @@ export default function App() {
     return resetPassword(email);
   };
 
-  /** 全学習データの消去 */
   const handleClearData = async () => {
     if (
       confirm(
@@ -453,13 +351,11 @@ export default function App() {
       )
     ) {
       localStorage.removeItem("sekaishi-reviews");
-      localStorage.removeItem("sekaishi-custom-pool");
       localStorage.removeItem("sekaishi-submissions");
       localStorage.removeItem("sekaishi-history");
       localStorage.removeItem("sekaishi-category-stats");
 
-      // If Supabase, we can also clear their review items
-      if (!isOfflineMode && user) {
+      if (user) {
         await supabase.from("review_items").delete().eq("user_id", user.id);
         await supabase
           .from("profiles")
@@ -476,7 +372,6 @@ export default function App() {
       }
 
       setReviewItems([]);
-      setCustomPool([]);
       setSubmissions([]);
       setHistory([]);
       setCategoryStats({});
@@ -487,43 +382,17 @@ export default function App() {
     }
   };
 
-  /** クイズモードの設定変更（セッション内のみ。DB/localStorageへの永続化はしない） */
   const handleChangeQuizMode = (m: import("./types/quiz").QuizMode) => {
     quiz.setMode(m);
   };
 
-  /** ユーザーからの問題投稿 */
   const handleSubmitSubmission = async (form: any) => {
-    // 年号・出来事名のバリデーションは SubmitTab.tsx / AuthContext.submitEvent
-    // 双方で行っているため、ここに到達する時点で form.year は null ではない前提。
-    const parsedYear = Number(form.year);
-
-    // Send to Supabase (if online)
     const res = await submitEvent(form);
     if (res.error) {
       alert("投稿に失敗しました: " + res.error.message);
       return;
     }
 
-    // Dynamic locally-injected question representation
-    const newItem: HistoryQuizItem = {
-      id: `custom-${Date.now()}`,
-      event: form.event,
-      year: parsedYear,
-      is_bc: parsedYear < 0,
-      chapter: `投稿問題 · ${form.field}`,
-      period: getPeriodFromYear(parsedYear),
-      region: form.regions[0] || "europe",
-      field: form.field.toLowerCase(),
-      description: form.description || undefined,
-    };
-
-    // Update custom pool for immediate local query
-    const newPool = [...customPool, newItem];
-    setCustomPool(newPool);
-    localStorage.setItem("sekaishi-custom-pool", JSON.stringify(newPool));
-
-    // Update submissions list
     const newSubmissions = [...submissions, form];
     setSubmissions(newSubmissions);
     localStorage.setItem(
@@ -532,11 +401,10 @@ export default function App() {
     );
 
     alert(
-      "問題が投稿されました。管理者による承認後、全体の出題範囲に反映されます。(現在はローカル確認用としてお使いの端末の出題範囲にのみ追加されています)",
+      "問題が投稿されました。管理者による承認後、全体の出題範囲に反映されます。",
     );
   };
 
-  // Stats calculations
   const getCategoryVal = useCallback(
     (cat: string) => {
       const stat = categoryStats[cat];
@@ -569,7 +437,6 @@ export default function App() {
     ];
   }, [getCategoryVal]);
 
-  // Read stats from either supabase profile (online) or local state profile
   const totalAnswered = profile?.totalAnswered ?? 0;
   const totalCorrect = profile?.totalCorrect ?? 0;
   const streakCurrent = profile?.streakCurrent ?? 0;
@@ -585,27 +452,16 @@ export default function App() {
   }, [streakCurrent]);
 
   const rangeOptions = useMemo(
-    () => getRangeOptions(combinedPool, quiz.mode),
-    [combinedPool, quiz.mode],
+    () => getRangeOptions(questionPool, quiz.mode),
+    [questionPool, quiz.mode],
   );
 
   const rangeLabel =
-    quiz.mode === "event-to-year"
-      ? questionSource === "supabase"
-        ? "出題地域"
-        : "出題章"
-      : "時代区分";
+    quiz.mode === "event-to-year" ? "出題地域" : "時代区分";
 
   const rankLabelText = useMemo(() => {
     return getRank(rankPoints);
   }, [rankPoints]);
-
-  // Supabase は設定済みなのに wh_dates が取得できず、意図せずモックへ
-  // フォールバックしている状態（本番で気づかれるべきバグ）だけを警告対象にする。
-  // "not-configured"（Supabase未設定によるデモモード）は正常系なので除外。
-  const showUnexpectedFallbackWarning =
-    questionSource === "mock" &&
-    (fallbackReason === "empty" || fallbackReason === "error");
 
   if (loading) {
     return (
@@ -618,17 +474,13 @@ export default function App() {
     );
   }
 
-  // Require Auth Screen if not logged in
   if (!user) {
     return <AuthScreen />;
   }
 
   return (
     <div className="min-h-screen bg-[#fafaf8] text-[#1a1a1a] dark:bg-[#141414] dark:text-[#f0f0ec] transition-colors duration-200 font-sans flex flex-col pb-20">
-      <Header
-        showAbort={activeTab === "quiz" && quiz.screen !== "start"}
-        onAbort={handleAbortQuiz}
-      />
+      <Header />
 
       <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-6 flex flex-col justify-start overflow-y-auto">
         {activeTab === "quiz" && (
@@ -641,7 +493,7 @@ export default function App() {
                 loading={questionsLoading}
                 rangeOptions={rangeOptions}
                 rangeLabel={rangeLabel}
-                showUnexpectedFallbackWarning={showUnexpectedFallbackWarning}
+                questionsError={questionsError}
                 onChangeMode={handleChangeQuizMode}
                 onChangeRange={quiz.setRange}
                 onChangeCount={quiz.setCount}
@@ -663,6 +515,7 @@ export default function App() {
                 onTextAnswer={quiz.handleTextSubmit}
                 onChoiceSelect={quiz.handleChoiceSelect}
                 onNext={quiz.nextQuestion}
+                onAbort={handleAbortQuiz}
               />
             )}
             {quiz.screen === "result" && (
@@ -704,9 +557,8 @@ export default function App() {
             account={{
               username:
                 profile?.username || user.email?.split("@")[0] || "ユーザー",
-              email: user.email ?? "",
+              email: user.email || "",
             }}
-            isSynced={!isOfflineMode}
             theme={theme}
             onChangeTheme={handleThemeChange}
             onSaveProfile={handleSaveProfile}

@@ -1,5 +1,6 @@
 import { AlertTriangle } from "lucide-react";
 import type { QuizMode } from "../../types/quiz";
+import type { QuestionsLoadError } from "../../lib/questions";
 
 interface StartScreenProps {
   mode: QuizMode;
@@ -8,14 +9,8 @@ interface StartScreenProps {
   loading?: boolean;
   rangeOptions: string[];
   rangeLabel?: string;
-  /**
-   * true の場合、Supabase は設定済みだが問い合わせが失敗/空だったために
-   * モックデータへフォールバックしている状態。これは「意図的なデモモード」とは
-   * 区別すべき異常系なので、目立つ警告として表示する。
-   * (意図的なデモモード = Supabase未設定 でAuthScreenの「デモモードで続行」を
-   * 選んだ場合。この場合は isSynced=false のバッジで足りるため、ここでは警告しない)
-   */
-  showUnexpectedFallbackWarning?: boolean;
+  /** 問題マスタの取得エラー（未設定・空・通信失敗） */
+  questionsError?: QuestionsLoadError;
   onChangeMode: (m: QuizMode) => void;
   onChangeRange: (r: string) => void;
   onChangeCount: (c: number | "all") => void;
@@ -24,6 +19,29 @@ interface StartScreenProps {
 
 const COUNTS: (number | "all")[] = [5, 10, 20, "all"];
 
+function questionsErrorMessage(error: QuestionsLoadError): {
+  title: string;
+  body: string;
+} | null {
+  if (!error) return null;
+  if (error === "not-configured") {
+    return {
+      title: "Supabase が設定されていません",
+      body: "VITE_SUPABASE_URL と VITE_SUPABASE_PB_KEY を設定してください。",
+    };
+  }
+  if (error === "empty") {
+    return {
+      title: "問題データがありません",
+      body: "wh_dates に出題可能な出来事が登録されていません。データベースを確認してください。",
+    };
+  }
+  return {
+    title: "問題データの取得に失敗しました",
+    body: "ネットワークや Supabase の状態を確認し、ページを再読み込みしてください。",
+  };
+}
+
 export function StartScreen({
   mode,
   range,
@@ -31,39 +49,33 @@ export function StartScreen({
   loading = false,
   rangeOptions,
   rangeLabel,
-  showUnexpectedFallbackWarning = false,
+  questionsError = null,
   onChangeMode,
   onChangeRange,
   onChangeCount,
   onStart,
 }: StartScreenProps) {
   const defaultRangeLabel = mode === "event-to-year" ? "出題地域" : "時代区分";
+  const errorInfo = questionsErrorMessage(questionsError);
+  const canStart = !loading && !questionsError && rangeOptions.length >= 0;
 
   return (
     <div className="w-full bg-white dark:bg-brand-navy-light rounded-2xl border border-slate-200 dark:border-brand-slate/30 shadow-sm p-6 sm:p-8 space-y-6 animate-fadeIn">
       <div className="text-center space-y-2">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide bg-brand-blue/10 text-brand-blue dark:text-brand-sky border border-brand-blue/20 dark:border-brand-blue/30">
-          新しいセッション
-        </span>
         <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-          学習を開始
+          Sekaishi Anki
         </h2>
         <p className="text-sm text-slate-500 dark:text-zinc-400">
-          出来事と年号（西暦）の対応を効率よく暗記するためのスマート学習クイズです。
+          出来事と年代（西暦）の対応を効率よく暗記するためのスマート学習クイズです。
         </p>
       </div>
 
-      {showUnexpectedFallbackWarning && (
-        <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-200 flex items-start gap-2">
+      {errorInfo && (
+        <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-800 dark:text-rose-200 flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           <div className="text-sm leading-relaxed">
-            <p className="font-bold">
-              本番データベースへの接続に失敗しています
-            </p>
-            <p className="opacity-90">
-              Supabase は設定済みですが wh_dates
-              の取得に失敗、または結果が空だったため、一時的にサンプル問題で表示しています。ネットワークやデータベースの状態を確認してください。
-            </p>
+            <p className="font-bold">{errorInfo.title}</p>
+            <p className="opacity-90">{errorInfo.body}</p>
           </div>
         </div>
       )}
@@ -77,13 +89,13 @@ export function StartScreen({
           <ModeButton
             active={mode === "event-to-year"}
             onClick={() => onChangeMode("event-to-year")}
-            label="出来事 ➔ 年号"
+            label="出来事 ➔ 年代"
             sub="記述回答"
           />
           <ModeButton
             active={mode === "year-to-event"}
             onClick={() => onChangeMode("year-to-event")}
-            label="年号 ➔ 出来事"
+            label="年代 ➔ 出来事"
             sub="4択選択"
           />
         </div>
@@ -97,7 +109,8 @@ export function StartScreen({
         <select
           value={range}
           onChange={(e) => onChangeRange(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-brand-slate/30 bg-slate-50 dark:bg-brand-navy text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent transition appearance-none cursor-pointer"
+          disabled={Boolean(questionsError)}
+          className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-brand-slate/30 bg-slate-50 dark:bg-brand-navy text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent transition appearance-none cursor-pointer disabled:opacity-50"
         >
           <option value="all">すべての範囲から出題</option>
           {rangeOptions.map((opt) => (
@@ -119,7 +132,8 @@ export function StartScreen({
               key={c}
               type="button"
               onClick={() => onChangeCount(c)}
-              className={`py-2 px-3 rounded-lg border text-xs font-bold transition ${
+              disabled={Boolean(questionsError)}
+              className={`py-2 px-3 rounded-lg border text-xs font-bold transition disabled:opacity-50 ${
                 count === c
                   ? "border-brand-blue bg-brand-blue/10 text-brand-blue ring-1 ring-brand-blue"
                   : "border-slate-200 dark:border-brand-slate/30 bg-transparent text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-brand-navy-light dark:hover:text-zinc-200"
@@ -134,7 +148,7 @@ export function StartScreen({
       <button
         type="button"
         onClick={onStart}
-        disabled={loading}
+        disabled={!canStart || Boolean(questionsError)}
         className="w-full py-4 rounded-xl bg-brand-blue hover:bg-brand-sky active:scale-[0.99] text-white font-bold text-sm tracking-wide transition-all flex items-center justify-center gap-2 disabled:opacity-50"
       >
         {loading ? "問題データを読み込み中..." : "クイズを開始する"}

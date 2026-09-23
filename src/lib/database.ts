@@ -133,7 +133,7 @@ export function mapWhDateToQuizItem(row: DbWhDate): HistoryQuizItem | null {
   };
 }
 
-/** Numeric wh_dates id only — mock ids like "wh-1" are not stored in review_items */
+/** Numeric wh_dates id only — non-numeric ids are not stored in review_items */
 export function isPersistableQuestionId(id: string): boolean {
   return /^\d+$/.test(id);
 }

@@ -5,6 +5,7 @@
 - **Provider**: Supabase Auth, email + password (`src/features/auth/AuthScreen.tsx`)
 - **Session**: `onAuthStateChange` in `src/contexts/AuthContext.tsx`
 - **Gate**: `App.tsx` renders `AuthScreen` until a user exists
+- **Config**: if `VITE_SUPABASE_*` is missing, AuthScreen shows a blocking error (no guest/demo continue)
 
 | Capability | Status |
 | --------- | ------ |
@@ -14,17 +15,7 @@
 | OAuth | Not implemented |
 | Account delete | Clears app tables, calls `rpc('delete_user')` when available, then signs out |
 
-## Demo / offline mode
-
-When `isSupabaseConfigured()` is false (`src/lib/supabase.ts`):
-
-- AuthScreen offers demo continue → `bypassAuth()`
-- Mock user id `offline-user`; `isOfflineMode === true`
-- All progress uses localStorage (see below)
-
-When env vars **are** set, the demo bypass is not offered; real auth is required.
-
-## Profile fields (synced when online)
+## Profile fields
 
 Stored on `profiles` (created by trigger `handle_new_user` on signup):
 
@@ -34,16 +25,15 @@ Stored on `profiles` (created by trigger `handle_new_user` on signup):
 
 Theme is applied via `useTheme` and can sync to `profiles.theme`.
 
-## What syncs vs local-only
+## What syncs vs local cache
 
-| Data | Online | Always mirrored / local |
-| ---- | ------ | ----------------------- |
-| Profile totals & streak | `profiles` | `sekaishi-profile` |
+| Data | Cloud | Local cache (optional mirror) |
+| ---- | ----- | ----------------------------- |
+| Profile totals & streak | `profiles` | — |
 | Review queue | `review_items` | `sekaishi-reviews` |
 | Submissions list | `wh_submissions` | `sekaishi-submissions` |
 | Category accuracy bars | — | `sekaishi-category-stats` only |
 | Quiz history list | — | `sekaishi-history` |
-| Custom question pool | — | `sekaishi-custom-pool` |
 | Theme preference | `profiles.theme` | `sekaishi-anki:theme` |
 
-Only numeric master question IDs are persisted to `review_items` (`isPersistableQuestionId`); mock/custom string IDs stay local.
+Only numeric master question IDs are persisted to `review_items` (`isPersistableQuestionId`).

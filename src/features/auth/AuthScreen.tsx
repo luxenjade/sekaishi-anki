@@ -4,7 +4,7 @@ import { isSupabaseConfigured } from "../../lib/supabase";
 import { KeyRound, Mail, User, Info, BookOpen } from "lucide-react";
 
 export function AuthScreen() {
-  const { signIn, signUp, bypassAuth } = useAuth();
+  const { signIn, signUp } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -68,24 +68,17 @@ export function AuthScreen() {
         </div>
 
         {!supabaseConfigured && (
-          <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-800 dark:text-amber-200 space-y-2">
+          <div className="p-4 rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-800 dark:text-rose-200 space-y-2">
             <div className="flex items-start gap-2">
               <Info className="w-4 h-4 shrink-0 mt-0.5" />
               <div className="text-sm leading-relaxed">
-                <p className="font-bold">Supabaseの接続キーが未設定です</p>
+                <p className="font-bold">Supabase の接続設定が必要です</p>
                 <p className="opacity-90">
                   `.env` に `VITE_SUPABASE_URL` と `VITE_SUPABASE_PB_KEY`
-                  を設定すると本番認証が有効になります。
+                  を設定し、開発サーバーを再起動してください。オフラインデモは利用できません。
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={bypassAuth}
-              className="w-full py-2 px-3 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs uppercase tracking-wider transition active:scale-95"
-            >
-              デモモードで続行（ローカル保存）
-            </button>
           </div>
         )}
 

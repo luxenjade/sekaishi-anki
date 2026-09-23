@@ -29,9 +29,11 @@ Mistakes from a normal session are upserted into the review queue. During a **re
 
 `src/lib/questions.ts` → `fetchQuestions()`:
 
-1. If Supabase is not configured → mock data (`fallbackReason: "not-configured"`)
+1. If Supabase is not configured → `{ items: [], error: "not-configured" }`
 2. If configured → select from `wh_dates` where `record_type = 'event'` and `year` is not null
-3. On empty result or API error → mock data and a warning banner on the start screen
+3. On empty result or API error → empty items + `error: "empty" | "error"` (StartScreen blocks start)
+
+There is **no** client-side mock question set.
 
 DB → app mapping (also documented in `supabase/README.md`):
 
@@ -41,5 +43,3 @@ DB → app mapping (also documented in `supabase/README.md`):
 | `region[]` | used as chapter/region filters |
 | `field` | Japanese labels mapped to internal enums |
 | (derived) | `period` via `getPeriodFromYear` |
-
-Custom events from submissions may be kept in a local `sekaishi-custom-pool` until they appear in master data.

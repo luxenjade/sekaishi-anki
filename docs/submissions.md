@@ -22,9 +22,9 @@ English labels in the form are mapped via `src/lib/submit-mappers.ts`.
 
 ## Lifecycle
 
-1. Insert into `wh_submissions` with `status: 'pending'` when online.
-2. User can view their past submissions (Supabase or `sekaishi-submissions` offline).
-3. **Admin approval** (pending → approved / rejected, copy into `wh_dates`) is **not** implemented in this app. Until approval, events may appear only in the local custom pool (`sekaishi-custom-pool`).
+1. Insert into `wh_submissions` with `status: 'pending'`.
+2. User can view their past submissions (loaded from Supabase; optional local cache).
+3. **Admin approval** (pending → approved / rejected, copy into `wh_dates`) is **not** implemented in this app. Submitted events do not enter the quiz pool until they exist in `wh_dates`.
 
 ## Database guardrails
 

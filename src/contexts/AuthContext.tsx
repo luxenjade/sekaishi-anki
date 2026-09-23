@@ -20,7 +20,7 @@ export interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
-  isOfflineMode: boolean;
+  isConfigured: boolean;
   signUp: (
     email: string,
     password: string,
@@ -57,7 +57,6 @@ export interface AuthContextType {
     total: number,
     mistakes: { item: { id: string } }[],
   ) => Promise<void>;
-  bypassAuth: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -68,24 +67,10 @@ export const useAuth = () => {
   return context;
 };
 
-const OFFLINE_USER_KEY = "sekaishi-mock-user";
-const OFFLINE_PROFILE_KEY = "sekaishi-profile";
-
-function defaultOfflineProfile(userId: string, username: string): Profile {
-  return {
-    id: userId,
-    username,
-    avatarUrl: null,
-    quizMode: "event-to-year",
-    theme: "light",
-    totalAnswered: 0,
-    totalCorrect: 0,
-    streakCurrent: 0,
-    streakBest: 0,
-    lastPlayedAt: null,
-    rankPoints: 0,
-  };
-}
+const notConfiguredError = () =>
+  new Error(
+    "Supabase が設定されていません。VITE_SUPABASE_URL と VITE_SUPABASE_PB_KEY を設定してください。",
+  );
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -94,13 +79,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isOfflineMode, setIsOfflineMode] = useState(!isSupabaseConfigured());
 
   const configured = isSupabaseConfigured();
 
   const fetchProfile = useCallback(
-    async (userId: string) => {
-      if (!configured || isOfflineMode) return;
+    async (userId: string, emailHint?: string) => {
+      if (!configured) return;
 
       const { data, error } = await supabase
         .from("profiles")
@@ -118,12 +102,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         return;
       }
 
-      // Fallback if trigger did not run yet
       const { data: created, error: insertError } = await supabase
         .from("profiles")
         .insert({
           id: userId,
-          username: user?.email?.split("@")[0] ?? "ユーザー",
+          username: emailHint?.split("@")[0] ?? "ユーザー",
         })
         .select()
         .single();
@@ -134,26 +117,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setProfile(mapProfileFromDb(created as DbProfile));
       }
     },
-    [configured, isOfflineMode, user?.email],
+    [configured],
   );
 
   const refreshProfile = useCallback(async () => {
-    if (user?.id) await fetchProfile(user.id);
+    if (user?.id) await fetchProfile(user.id, user.email ?? undefined);
   }, [user, fetchProfile]);
 
   useEffect(() => {
+    // 旧デモモードの残骸を掃除
+    localStorage.removeItem("sekaishi-mock-user");
+    localStorage.removeItem("sekaishi-profile");
+    localStorage.removeItem("sekaishi-custom-pool");
+
     if (!configured) {
-      const mockUser = localStorage.getItem(OFFLINE_USER_KEY);
-      if (mockUser) {
-        const u = JSON.parse(mockUser) as { id: string; email: string };
-        setUser({ id: u.id, email: u.email } as User);
-        const savedProfile = localStorage.getItem(OFFLINE_PROFILE_KEY);
-        setProfile(
-          savedProfile
-            ? (JSON.parse(savedProfile) as Profile)
-            : defaultOfflineProfile(u.id, u.email.split("@")[0]),
-        );
-      }
       setLoading(false);
       return;
     }
@@ -161,7 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
-      if (s?.user) fetchProfile(s.user.id);
+      if (s?.user) fetchProfile(s.user.id, s.user.email ?? undefined);
       setLoading(false);
     });
 
@@ -170,7 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
       setUser(s?.user ?? null);
-      if (s?.user) fetchProfile(s.user.id);
+      if (s?.user) fetchProfile(s.user.id, s.user.email ?? undefined);
       else setProfile(null);
       setLoading(false);
     });
@@ -178,32 +155,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => subscription.unsubscribe();
   }, [configured, fetchProfile]);
 
-  const bypassAuth = useCallback(() => {
-    setIsOfflineMode(true);
-    const mockU = { id: "offline-user", email: "student@example.com" };
-    setUser({ id: mockU.id, email: mockU.email } as User);
-    localStorage.setItem(OFFLINE_USER_KEY, JSON.stringify(mockU));
-
-    const savedProfile = localStorage.getItem(OFFLINE_PROFILE_KEY);
-    if (savedProfile) {
-      setProfile(JSON.parse(savedProfile) as Profile);
-    } else {
-      const p = defaultOfflineProfile(mockU.id, "デモユーザー");
-      setProfile(p);
-      localStorage.setItem(OFFLINE_PROFILE_KEY, JSON.stringify(p));
-    }
-  }, []);
-
   const signUp = async (email: string, password: string, username: string) => {
-    if (!configured || isOfflineMode) {
-      const mockU = { id: `user-${Date.now()}`, email };
-      setUser({ id: mockU.id, email } as User);
-      localStorage.setItem(OFFLINE_USER_KEY, JSON.stringify(mockU));
-      const p = defaultOfflineProfile(mockU.id, username);
-      setProfile(p);
-      localStorage.setItem(OFFLINE_PROFILE_KEY, JSON.stringify(p));
-      return { error: null };
-    }
+    if (!configured) return { error: notConfiguredError() };
 
     const { error } = await supabase.auth.signUp({
       email,
@@ -214,24 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const signIn = async (email: string, password: string) => {
-    if (!configured || isOfflineMode) {
-      const mockUserStr = localStorage.getItem(OFFLINE_USER_KEY);
-      let u = mockUserStr
-        ? (JSON.parse(mockUserStr) as { id: string; email: string })
-        : null;
-      if (!u || u.email !== email) {
-        u = { id: "offline-user", email };
-        localStorage.setItem(OFFLINE_USER_KEY, JSON.stringify(u));
-      }
-      setUser({ id: u.id, email: u.email } as User);
-      const savedProfile = localStorage.getItem(OFFLINE_PROFILE_KEY);
-      setProfile(
-        savedProfile
-          ? (JSON.parse(savedProfile) as Profile)
-          : defaultOfflineProfile(u.id, email.split("@")[0]),
-      );
-      return { error: null };
-    }
+    if (!configured) return { error: notConfiguredError() };
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -241,23 +177,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const signOut = async () => {
-    if (!configured || isOfflineMode) {
-      setUser(null);
-      setProfile(null);
-      localStorage.removeItem(OFFLINE_USER_KEY);
-      return;
-    }
-    await supabase.auth.signOut();
+    if (configured) await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
   };
 
   const resetPassword = async (email: string) => {
-    if (!configured || isOfflineMode) {
-      return {
-        error: new Error("パスワードリセットはオンライン認証が必要です。"),
-      };
-    }
+    if (!configured) return { error: notConfiguredError() };
+
     const redirectTo = `${window.location.origin}/`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo,
@@ -266,12 +193,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const deleteAccount = async () => {
-    if (!configured || isOfflineMode || !user) {
-      setUser(null);
-      setProfile(null);
-      localStorage.removeItem(OFFLINE_USER_KEY);
-      localStorage.removeItem(OFFLINE_PROFILE_KEY);
-      return { error: null };
+    if (!configured || !user) {
+      return { error: new Error("認証されていません") };
     }
 
     await supabase.from("review_items").delete().eq("user_id", user.id);
@@ -281,7 +204,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const { error } = await supabase.rpc("delete_user");
     if (error) {
-      // RPC may not exist — sign out after clearing app data
       console.warn("delete_user RPC unavailable:", error.message);
     }
     await supabase.auth.signOut();
@@ -291,15 +213,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const updateProfile = async (username: string) => {
-    if (!configured || isOfflineMode) {
-      setProfile((prev) => {
-        if (!prev) return null;
-        const updated = { ...prev, username };
-        localStorage.setItem(OFFLINE_PROFILE_KEY, JSON.stringify(updated));
-        return updated;
-      });
-      return { error: null };
-    }
+    if (!configured) return { error: notConfiguredError() };
     if (!user) return { error: new Error("認証されていません") };
 
     const { error } = await supabase
@@ -313,16 +227,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const updateTheme = async (theme: Profile["theme"]) => {
     setProfile((prev) => (prev ? { ...prev, theme } : prev));
-
-    if (!configured || isOfflineMode || !user) {
-      if (profile) {
-        localStorage.setItem(
-          OFFLINE_PROFILE_KEY,
-          JSON.stringify({ ...profile, theme }),
-        );
-      }
-      return;
-    }
+    if (!configured || !user) return;
 
     await supabase
       .from("profiles")
@@ -334,7 +239,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     item: { id: string },
     action: "add" | "remove",
   ) => {
-    if (!configured || isOfflineMode || !user) return;
+    if (!configured || !user) return;
     if (!isPersistableQuestionId(item.id)) return;
 
     if (action === "add") {
@@ -363,22 +268,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     field?: string;
     regions?: string[];
   }) => {
-    // 防御的バリデーション（多層防御の1つ）。
-    // 本来の入力チェックは SubmitTab.tsx 側のフォームで行うが、
-    // submitEvent は他の呼び出し元からも呼ばれ得るため、ここでも
-    // 空文字・年号未入力の投稿を弾く。DB側にも CHECK 制約を用意しているので
-    // 万一ここを迂回されても wh_submissions への挿入自体が失敗する。
     const trimmedEvent = eventData.event.trim();
     if (!trimmedEvent) {
       return { error: new Error("出来事名を入力してください。") };
     }
     if (eventData.year === null || Number.isNaN(eventData.year)) {
-      return { error: new Error("年号を入力してください。") };
+      return { error: new Error("年代を入力してください。") };
     }
 
-    if (!configured || isOfflineMode || !user) {
-      return { error: null };
-    }
+    if (!configured) return { error: notConfiguredError() };
+    if (!user) return { error: new Error("認証されていません") };
 
     const { error } = await supabase.from("wh_submissions").insert({
       user_id: user.id,
@@ -398,9 +297,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     total: number,
     mistakes: { item: { id: string } }[],
   ) => {
-    if (!user) return;
-
-    if (!configured || isOfflineMode) return;
+    if (!configured || !user) return;
 
     const today = new Date().toLocaleDateString("en-CA");
 
@@ -467,7 +364,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         session,
         profile,
         loading,
-        isOfflineMode,
+        isConfigured: configured,
         signUp,
         signIn,
         signOut,
@@ -479,7 +376,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         submitEvent,
         refreshProfile,
         saveQuizResults,
-        bypassAuth,
       }}
     >
       {children}

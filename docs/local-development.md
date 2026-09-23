@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - Node.js + [pnpm](https://pnpm.io/)
-- Optional: a Supabase project for auth and cloud sync
+- A Supabase project (required — no offline demo)
 
 ## Environment
 
@@ -16,7 +16,7 @@ cp .env.example .env
 | `VITE_SUPABASE_URL` | Supabase project URL |
 | `VITE_SUPABASE_PB_KEY` | Supabase **anon** (public) key — name is intentional in this repo |
 
-If either is empty, the app runs in demo mode. See [auth-and-sync.md](auth-and-sync.md).
+Both must be set. Without them the app shows a configuration error on the auth screen and will not load questions.
 
 ## Scripts
 
@@ -50,5 +50,5 @@ Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PB_KEY` in the Netlify environment UI
 ## What is not in this repo
 
 - No Docker / Compose files
-- No `quiz-model/` legacy tree
+- No offline demo / mock question dataset
 - No PWA plugin or service worker

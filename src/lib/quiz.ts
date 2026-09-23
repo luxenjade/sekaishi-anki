@@ -10,13 +10,13 @@ export function shuffleArray<T>(array: T[]): T[] {
   return result;
 }
 
-/** 年号を表示用にフォーマット (-221 → "前221年", 1789 → "1789年") */
+/** 年代を表示用にフォーマット (-221 → "前221年", 1789 → "1789年") */
 export function formatYear(year: number): string {
   if (year < 0) return `前${Math.abs(year)}年`;
   return `${year}年`;
 }
 
-/** 入力文字列を年号数値にパース。不正な文字列は null */
+/** 入力文字列を年代数値にパース。不正な文字列は null */
 export function parseYearInput(input: string): number | null {
   const trimmed = input.trim();
   if (!/^-?\d+$/.test(trimmed)) return null;

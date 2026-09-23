@@ -26,7 +26,6 @@ interface SettingsTabProps {
     username: string;
     email: string;
   };
-  isSynced?: boolean;
   onSignOut?: () => void;
   onDeleteAccount?: () => void;
   onClearData?: () => void;
@@ -37,8 +36,7 @@ interface SettingsTabProps {
 }
 
 export function SettingsTab({
-  account = { username: "デモユーザー", email: "student@example.com" },
-  isSynced = false,
+  account = { username: "ユーザー", email: "" },
   onSignOut,
   onDeleteAccount,
   onClearData,
@@ -64,18 +62,13 @@ export function SettingsTab({
         <AccountSection
           username={account.username}
           email={account.email}
-          isSynced={isSynced}
           onSignOut={onSignOut}
           onDeleteAccount={onDeleteAccount}
           onSaveProfile={onSaveProfile}
           onResetPassword={onResetPassword}
         />
 
-        <AppearanceSection
-          theme={theme}
-          onChangeTheme={handleThemeChange}
-          isSynced={isSynced}
-        />
+        <AppearanceSection theme={theme} onChangeTheme={handleThemeChange} />
 
         <DataSection onClear={onClearData} />
 
@@ -94,7 +87,6 @@ export function SettingsTab({
 function AccountSection({
   username,
   email,
-  isSynced,
   onSignOut,
   onDeleteAccount,
   onSaveProfile,
@@ -102,7 +94,6 @@ function AccountSection({
 }: {
   username: string;
   email: string;
-  isSynced?: boolean;
   onSignOut?: () => void;
   onDeleteAccount?: () => void;
   onSaveProfile?: (username: string) => void;
@@ -140,14 +131,8 @@ function AccountSection({
             <p className="text-sm font-black">{username}</p>
             <p className="text-xs font-bold text-slate-400 truncate">{email}</p>
           </div>
-          <span
-            className={`ml-auto px-2.5 py-1 rounded-md text-xs font-bold border shrink-0 ${
-              isSynced
-                ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30"
-                : "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900/30"
-            }`}
-          >
-            {isSynced ? "クラウド同期" : "ローカルデモ"}
+          <span className="ml-auto px-2.5 py-1 rounded-md text-xs font-bold border shrink-0 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30">
+            クラウド同期
           </span>
         </div>
 
@@ -216,11 +201,9 @@ function AccountSection({
 function AppearanceSection({
   theme,
   onChangeTheme,
-  isSynced,
 }: {
   theme: "light" | "dark";
   onChangeTheme: (t: "light" | "dark") => void;
-  isSynced?: boolean;
 }) {
   return (
     <section className="space-y-3">
@@ -284,7 +267,7 @@ function AppearanceSection({
             icon={<Shield className="w-4 h-4" />}
             accent="emerald"
             label="プライバシー"
-            value={isSynced ? "クラウド同期" : "ローカルのみ"}
+            value="クラウド同期"
           />
         </div>
       </div>

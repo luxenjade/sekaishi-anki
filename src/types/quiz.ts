@@ -31,8 +31,8 @@ export interface HistoryQuizItem {
   event: string;
   year: number; // 紀元前は負の値 (例: -221)
   is_bc: boolean; // 紀元前フラグ
-  chapter: string; // 出来事→年号の分類（章）
-  period: string; // 年号→出来事の分類（時代区分）
+  chapter: string; // 出来事→年代の分類（章）
+  period: string; // 年代→出来事の分類（時代区分）
   region?: Region; // 地域（idea.md の wh_regions に対応）
   field?: Field; // 分野
   description?: string;

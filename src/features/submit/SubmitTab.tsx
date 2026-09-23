@@ -128,7 +128,7 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
       next.event = "出来事名が長すぎます（300文字以内）。";
     }
     if (form.year === null || Number.isNaN(form.year)) {
-      next.year = "年号を入力してください。";
+      next.year = "年代を入力してください。";
     }
     setErrors(next);
     return Object.keys(next).length === 0;

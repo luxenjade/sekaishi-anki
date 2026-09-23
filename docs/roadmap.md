@@ -5,7 +5,6 @@ Backlog relative to the **current** codebase (not the archived Japanese plans). 
 ## Likely next product work
 
 - Password-reset **landing UI** after the email link (Settings only sends the email today)
-- Guest progress → account merge when signing in after demo use
 - Admin workflow: review `wh_submissions` and promote approved rows into `wh_dates`
 - Wire `field_stats` (or keep category stats local intentionally) and/or charts with `recharts`
 - Spaced repetition for the review queue (`review_count` / due dates)
