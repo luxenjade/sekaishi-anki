@@ -223,22 +223,6 @@ function AppearanceSection({
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            aria-label="ダークモードを切り替え"
-            onClick={() => onChangeTheme(theme === "dark" ? "light" : "dark")}
-            className={`w-12 h-6 rounded-full transition-colors relative shrink-0 ${
-              theme === "dark"
-                ? "bg-brand-blue"
-                : "bg-slate-200 dark:bg-brand-navy"
-            }`}
-          >
-            <div
-              className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-sm ${
-                theme === "dark" ? "left-7" : "left-1"
-              }`}
-            />
-          </button>
         </div>
 
         <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 dark:bg-brand-navy p-1 border border-slate-200 dark:border-brand-slate/30">
@@ -253,21 +237,6 @@ function AppearanceSection({
             onClick={() => onChangeTheme("dark")}
             icon={<Moon className="w-4 h-4" />}
             label="ダーク"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <InfoTile
-            icon={<Layout className="w-4 h-4" />}
-            accent="blue"
-            label="レイアウト"
-            value="コンパクト"
-          />
-          <InfoTile
-            icon={<Shield className="w-4 h-4" />}
-            accent="emerald"
-            label="プライバシー"
-            value="クラウド同期"
           />
         </div>
       </div>

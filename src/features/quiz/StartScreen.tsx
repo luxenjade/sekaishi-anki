@@ -151,8 +151,7 @@ export function StartScreen({
         disabled={!canStart || Boolean(questionsError)}
         className="w-full py-4 rounded-xl bg-brand-blue hover:bg-brand-sky active:scale-[0.99] text-white font-bold text-sm tracking-wide transition-all flex items-center justify-center gap-2 disabled:opacity-50"
       >
-        {loading ? "問題データを読み込み中..." : "クイズを開始する"}
-        {!loading && <span aria-hidden>→</span>}
+        {loading ? "問題データを読み込み中..." : "クイズを開始"}
       </button>
     </div>
   );
