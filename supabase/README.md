@@ -4,14 +4,14 @@ This app uses Supabase for authentication and user data. **Question master table
 
 ## Schema overview
 
-| Table | Source | Purpose |
-| ----- | ------ | ------- |
-| `wh_dates` | `supabase.sql` (existing) | Question master — `year`, `event`, `region[]`, `field` (Japanese) |
-| `wh_regions` | `supabase.sql` (existing) | Region labels |
-| `profiles` | migration | User settings & stats |
-| `review_items` | migration | Review queue |
-| `wh_submissions` | migration | User submissions |
-| `field_stats` | migration | Per-field accuracy (table ready; app does not write yet) |
+| Table            | Source                    | Purpose                                                           |
+| ---------------- | ------------------------- | ----------------------------------------------------------------- |
+| `wh_dates`       | `supabase.sql` (existing) | Question master — `year`, `event`, `region[]`, `field` (Japanese) |
+| `wh_regions`     | `supabase.sql` (existing) | Region labels                                                     |
+| `profiles`       | migration                 | User settings & stats                                             |
+| `review_items`   | migration                 | Review queue                                                      |
+| `wh_submissions` | migration                 | User submissions                                                  |
+| `field_stats`    | migration                 | Per-field accuracy (table ready; app does not write yet)          |
 
 ## 1. Create / connect Supabase project
 
@@ -41,12 +41,12 @@ In **SQL Editor**, run in order:
 
 The React app maps `wh_dates` rows as follows:
 
-| DB column | App field | Notes |
-| --------- | --------- | ----- |
-| `year` | `year`, `is_bc` | `year < 0` → BCE |
-| `region[]` | `chapter` (filter), `region` | Region labels used as quiz scope |
-| (derived) | `period` | Computed from `year` on the client |
-| `field` | `field` | Japanese → internal enum |
+| DB column  | App field                    | Notes                              |
+| ---------- | ---------------------------- | ---------------------------------- |
+| `year`     | `year`, `is_bc`              | `year < 0` → BCE                   |
+| `region[]` | `chapter` (filter), `region` | Region labels used as quiz scope   |
+| (derived)  | `period`                     | Computed from `year` on the client |
+| `field`    | `field`                      | Japanese → internal enum           |
 
 Only `record_type = 'event'` rows with non-null `year` are fetched for quizzes.
 

@@ -1,4 +1,10 @@
-import { ArrowRight, BarChart3, History, PlayCircle, Trash2 } from "lucide-react";
+import {
+  ArrowRight,
+  BarChart3,
+  History,
+  PlayCircle,
+  Trash2,
+} from "lucide-react";
 import type { HistoryQuizItem } from "../../types/quiz";
 
 interface StatsTabProps {

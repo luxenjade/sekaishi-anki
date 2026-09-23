@@ -11,22 +11,22 @@
 cp .env.example .env
 ```
 
-| Variable | Purpose |
-| -------- | ------- |
-| `VITE_SUPABASE_URL` | Supabase project URL |
+| Variable               | Purpose                                                           |
+| ---------------------- | ----------------------------------------------------------------- |
+| `VITE_SUPABASE_URL`    | Supabase project URL                                              |
 | `VITE_SUPABASE_PB_KEY` | Supabase **anon** (public) key — name is intentional in this repo |
 
 Both must be set. Without them the app shows a configuration error on the auth screen and will not load questions.
 
 ## Scripts
 
-| Command | Action |
-| ------- | ------ |
-| `pnpm dev` | Vite dev server |
-| `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm lint` | ESLint |
-| `pnpm build` | Production build to `dist/` |
-| `pnpm preview` | Preview the production build |
+| Command          | Action                       |
+| ---------------- | ---------------------------- |
+| `pnpm dev`       | Vite dev server              |
+| `pnpm typecheck` | `tsc --noEmit`               |
+| `pnpm lint`      | ESLint                       |
+| `pnpm build`     | Production build to `dist/`  |
+| `pnpm preview`   | Preview the production build |
 
 ## Supabase Auth redirects
 

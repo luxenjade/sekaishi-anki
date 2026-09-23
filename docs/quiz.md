@@ -4,10 +4,10 @@ Implementation lives under `src/features/quiz/`, `src/hooks/useQuiz.ts`, and `sr
 
 ## Modes
 
-| Mode | Interaction | Filter axis |
-| ---- | ----------- | ----------- |
-| `event-to-year` | Type a year (`-221` for 221 BCE) | Chapter / region label |
-| `year-to-event` | Pick 1 of 4 events | Period (derived from year) |
+| Mode            | Interaction                      | Filter axis                |
+| --------------- | -------------------------------- | -------------------------- |
+| `event-to-year` | Type a year (`-221` for 221 BCE) | Chapter / region label     |
+| `year-to-event` | Pick 1 of 4 events               | Period (derived from year) |
 
 Quiz mode is chosen on the start screen for the current session. It is **not** persisted to `profiles.quiz_mode` in the current UI.
 
@@ -37,9 +37,9 @@ There is **no** client-side mock question set.
 
 DB → app mapping (also documented in `supabase/README.md`):
 
-| DB | App |
-| -- | --- |
-| `year` (&lt; 0 → BCE) | `year`, `is_bc` |
-| `region[]` | used as chapter/region filters |
-| `field` | Japanese labels mapped to internal enums |
-| (derived) | `period` via `getPeriodFromYear` |
+| DB                    | App                                      |
+| --------------------- | ---------------------------------------- |
+| `year` (&lt; 0 → BCE) | `year`, `is_bc`                          |
+| `region[]`            | used as chapter/region filters           |
+| `field`               | Japanese labels mapped to internal enums |
+| (derived)             | `period` via `getPeriodFromYear`         |

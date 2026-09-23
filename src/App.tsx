@@ -456,8 +456,7 @@ export default function App() {
     [questionPool, quiz.mode],
   );
 
-  const rangeLabel =
-    quiz.mode === "event-to-year" ? "出題地域" : "時代区分";
+  const rangeLabel = quiz.mode === "event-to-year" ? "出題地域" : "時代区分";
 
   const rankLabelText = useMemo(() => {
     return getRank(rankPoints);

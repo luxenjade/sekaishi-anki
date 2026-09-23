@@ -12,23 +12,23 @@ Both live primarily under the **Stats** tab (`src/features/stats/StatsTab.tsx`) 
 
 ## Stats overview
 
-| Metric | Source when online | Offline |
-| ------ | ------------------ | ------- |
-| Total answered / correct | `profiles` via `saveQuizResults` | local profile |
-| Accuracy | derived | derived |
-| Streak (current / best) | `profiles` | local profile |
-| Rank | `rank_points` → `getRank()` in `App.tsx` | same client formula |
+| Metric                   | Source when online                       | Offline             |
+| ------------------------ | ---------------------------------------- | ------------------- |
+| Total answered / correct | `profiles` via `saveQuizResults`         | local profile       |
+| Accuracy                 | derived                                  | derived             |
+| Streak (current / best)  | `profiles`                               | local profile       |
+| Rank                     | `rank_points` → `getRank()` in `App.tsx` | same client formula |
 
 ### Rank thresholds
 
-| Points | Rank |
-| ------ | ---- |
-| &lt; 100 | Apprentice (見習い史家) |
-| &lt; 300 | Novice (初学者) |
-| &lt; 700 | Chronicler (年代記者) |
-| &lt; 1500 | Historian (歴史家) |
-| &lt; 3000 | Scholar (碩学) |
-| ≥ 3000 | Witness (歴史の証人) |
+| Points    | Rank                    |
+| --------- | ----------------------- |
+| &lt; 100  | Apprentice (見習い史家) |
+| &lt; 300  | Novice (初学者)         |
+| &lt; 700  | Chronicler (年代記者)   |
+| &lt; 1500 | Historian (歴史家)      |
+| &lt; 3000 | Scholar (碩学)          |
+| ≥ 3000    | Witness (歴史の証人)    |
 
 ## Category bars
 

@@ -1,73 +1,64 @@
 -- User-facing tables for sekaishi-anki
 -- Master tables (wh_dates, wh_regions) are defined in supabase.sql — do NOT recreate them here.
-
 -- ============================================================
 -- User profiles
 -- ============================================================
-
-create table if not exists public.profiles (
-  id uuid references auth.users (id) on delete cascade primary key,
-  username text unique,
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id uuid REFERENCES auth.users (id) ON DELETE CASCADE PRIMARY KEY,
+  username text UNIQUE,
   avatar_url text,
-  quiz_mode text not null default 'event_to_year'
-    check (quiz_mode in ('year_to_event', 'event_to_year')),
-  theme text not null default 'system'
-    check (theme in ('light', 'dark', 'system')),
-  total_answered integer not null default 0,
-  total_correct integer not null default 0,
-  streak_current integer not null default 0,
-  streak_best integer not null default 0,
+  quiz_mode text NOT NULL DEFAULT 'event_to_year' CHECK (quiz_mode IN ('year_to_event', 'event_to_year')),
+  theme text NOT NULL DEFAULT 'system' CHECK (theme IN ('light', 'dark', 'system')),
+  total_answered integer NOT NULL DEFAULT 0,
+  total_correct integer NOT NULL DEFAULT 0,
+  streak_current integer NOT NULL DEFAULT 0,
+  streak_best integer NOT NULL DEFAULT 0,
   last_played_at date,
-  rank_points integer not null default 0,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  rank_points integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-create table if not exists public.field_stats (
-  id bigint generated always as identity primary key,
-  user_id uuid references public.profiles (id) on delete cascade not null,
-  field text not null,
-  answered integer not null default 0,
-  correct integer not null default 0,
-  updated_at timestamptz not null default now(),
-  unique (user_id, field)
+CREATE TABLE IF NOT EXISTS public.field_stats (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  user_id uuid REFERENCES public.profiles (id) ON DELETE CASCADE NOT NULL,
+  field text NOT NULL,
+  answered integer NOT NULL DEFAULT 0,
+  correct integer NOT NULL DEFAULT 0,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, field)
 );
 
-create table if not exists public.review_items (
-  id bigint generated always as identity primary key,
-  user_id uuid references public.profiles (id) on delete cascade not null,
-  question_id bigint references public.wh_dates (id) on delete cascade not null,
-  added_at timestamptz not null default now(),
-  review_count integer not null default 0,
+CREATE TABLE IF NOT EXISTS public.review_items (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  user_id uuid REFERENCES public.profiles (id) ON DELETE CASCADE NOT NULL,
+  question_id bigint REFERENCES public.wh_dates (id) ON DELETE CASCADE NOT NULL,
+  added_at timestamptz NOT NULL DEFAULT now(),
+  review_count integer NOT NULL DEFAULT 0,
   last_reviewed_at timestamptz,
-  unique (user_id, question_id)
+  UNIQUE (user_id, question_id)
 );
 
-create table if not exists public.wh_submissions (
-  id bigint generated always as identity primary key,
-  user_id uuid references public.profiles (id) on delete set null,
-  year integer not null,
+CREATE TABLE IF NOT EXISTS public.wh_submissions (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  user_id uuid REFERENCES public.profiles (id) ON DELETE SET NULL,
+  YEAR integer NOT NULL,
   year_end integer,
-  event text not null,
+  event text NOT NULL,
   description text,
-  region text[],
+  region TEXT[],
   field text,
-  status text not null default 'pending'
-    check (status in ('pending', 'approved', 'rejected')),
+  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
   reviewer_note text,
-  created_at timestamptz not null default now()
+  created_at timestamptz NOT NULL DEFAULT now()
 );
 
 -- ============================================================
 -- Auto-create profile on signup
 -- ============================================================
-
-create or replace function public.handle_new_user()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
+CREATE OR REPLACE FUNCTION public.handle_new_user () returns trigger language plpgsql security definer
+SET
+  search_path = public AS $$
 begin
   insert into public.profiles (id, username)
   values (
@@ -79,116 +70,142 @@ begin
 end;
 $$;
 
-drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function public.handle_new_user();
+DROP TRIGGER if EXISTS on_auth_user_created ON auth.users;
+
+CREATE TRIGGER on_auth_user_created
+AFTER INSERT ON auth.users FOR EACH ROW
+EXECUTE FUNCTION public.handle_new_user ();
 
 -- ============================================================
 -- updated_at helper
 -- ============================================================
-
-create or replace function public.set_updated_at()
-returns trigger
-language plpgsql
-as $$
+CREATE OR REPLACE FUNCTION public.set_updated_at () returns trigger language plpgsql AS $$
 begin
   new.updated_at = now();
   return new;
 end;
 $$;
 
-drop trigger if exists profiles_updated_at on public.profiles;
-create trigger profiles_updated_at
-  before update on public.profiles
-  for each row execute function public.set_updated_at();
+DROP TRIGGER if EXISTS profiles_updated_at ON public.profiles;
+
+CREATE TRIGGER profiles_updated_at
+BEFORE UPDATE ON public.profiles FOR EACH ROW
+EXECUTE FUNCTION public.set_updated_at ();
 
 -- ============================================================
 -- Row Level Security
 -- ============================================================
+ALTER TABLE public.wh_dates enable ROW level security;
 
-alter table public.wh_dates enable row level security;
-alter table public.wh_regions enable row level security;
-alter table public.profiles enable row level security;
-alter table public.field_stats enable row level security;
-alter table public.review_items enable row level security;
-alter table public.wh_submissions enable row level security;
+ALTER TABLE public.wh_regions enable ROW level security;
+
+ALTER TABLE public.profiles enable ROW level security;
+
+ALTER TABLE public.field_stats enable ROW level security;
+
+ALTER TABLE public.review_items enable ROW level security;
+
+ALTER TABLE public.wh_submissions enable ROW level security;
 
 -- Public read for existing master data
-drop policy if exists "wh_dates_select_all" on public.wh_dates;
-create policy "wh_dates_select_all" on public.wh_dates
-  for select using (true);
+DROP POLICY if EXISTS "wh_dates_select_all" ON public.wh_dates;
 
-drop policy if exists "wh_regions_select_all" on public.wh_regions;
-create policy "wh_regions_select_all" on public.wh_regions
-  for select using (true);
+CREATE POLICY "wh_dates_select_all" ON public.wh_dates FOR
+SELECT
+  USING (TRUE);
+
+DROP POLICY if EXISTS "wh_regions_select_all" ON public.wh_regions;
+
+CREATE POLICY "wh_regions_select_all" ON public.wh_regions FOR
+SELECT
+  USING (TRUE);
 
 -- Profiles: owner only
-drop policy if exists "profiles_select_own" on public.profiles;
-create policy "profiles_select_own" on public.profiles
-  for select using (auth.uid() = id);
+DROP POLICY if EXISTS "profiles_select_own" ON public.profiles;
 
-drop policy if exists "profiles_insert_own" on public.profiles;
-create policy "profiles_insert_own" on public.profiles
-  for insert with check (auth.uid() = id);
+CREATE POLICY "profiles_select_own" ON public.profiles FOR
+SELECT
+  USING (auth.uid () = id);
 
-drop policy if exists "profiles_update_own" on public.profiles;
-create policy "profiles_update_own" on public.profiles
-  for update using (auth.uid() = id);
+DROP POLICY if EXISTS "profiles_insert_own" ON public.profiles;
 
-drop policy if exists "profiles_delete_own" on public.profiles;
-create policy "profiles_delete_own" on public.profiles
-  for delete using (auth.uid() = id);
+CREATE POLICY "profiles_insert_own" ON public.profiles FOR insert
+WITH
+  CHECK (auth.uid () = id);
+
+DROP POLICY if EXISTS "profiles_update_own" ON public.profiles;
+
+CREATE POLICY "profiles_update_own" ON public.profiles
+FOR UPDATE
+  USING (auth.uid () = id);
+
+DROP POLICY if EXISTS "profiles_delete_own" ON public.profiles;
+
+CREATE POLICY "profiles_delete_own" ON public.profiles FOR delete USING (auth.uid () = id);
 
 -- Field stats: owner only
-drop policy if exists "field_stats_select_own" on public.field_stats;
-create policy "field_stats_select_own" on public.field_stats
-  for select using (auth.uid() = user_id);
+DROP POLICY if EXISTS "field_stats_select_own" ON public.field_stats;
 
-drop policy if exists "field_stats_insert_own" on public.field_stats;
-create policy "field_stats_insert_own" on public.field_stats
-  for insert with check (auth.uid() = user_id);
+CREATE POLICY "field_stats_select_own" ON public.field_stats FOR
+SELECT
+  USING (auth.uid () = user_id);
 
-drop policy if exists "field_stats_update_own" on public.field_stats;
-create policy "field_stats_update_own" on public.field_stats
-  for update using (auth.uid() = user_id);
+DROP POLICY if EXISTS "field_stats_insert_own" ON public.field_stats;
+
+CREATE POLICY "field_stats_insert_own" ON public.field_stats FOR insert
+WITH
+  CHECK (auth.uid () = user_id);
+
+DROP POLICY if EXISTS "field_stats_update_own" ON public.field_stats;
+
+CREATE POLICY "field_stats_update_own" ON public.field_stats
+FOR UPDATE
+  USING (auth.uid () = user_id);
 
 -- Review items: owner only
-drop policy if exists "review_items_select_own" on public.review_items;
-create policy "review_items_select_own" on public.review_items
-  for select using (auth.uid() = user_id);
+DROP POLICY if EXISTS "review_items_select_own" ON public.review_items;
 
-drop policy if exists "review_items_insert_own" on public.review_items;
-create policy "review_items_insert_own" on public.review_items
-  for insert with check (auth.uid() = user_id);
+CREATE POLICY "review_items_select_own" ON public.review_items FOR
+SELECT
+  USING (auth.uid () = user_id);
 
-drop policy if exists "review_items_update_own" on public.review_items;
-create policy "review_items_update_own" on public.review_items
-  for update using (auth.uid() = user_id);
+DROP POLICY if EXISTS "review_items_insert_own" ON public.review_items;
 
-drop policy if exists "review_items_delete_own" on public.review_items;
-create policy "review_items_delete_own" on public.review_items
-  for delete using (auth.uid() = user_id);
+CREATE POLICY "review_items_insert_own" ON public.review_items FOR insert
+WITH
+  CHECK (auth.uid () = user_id);
+
+DROP POLICY if EXISTS "review_items_update_own" ON public.review_items;
+
+CREATE POLICY "review_items_update_own" ON public.review_items
+FOR UPDATE
+  USING (auth.uid () = user_id);
+
+DROP POLICY if EXISTS "review_items_delete_own" ON public.review_items;
+
+CREATE POLICY "review_items_delete_own" ON public.review_items FOR delete USING (auth.uid () = user_id);
 
 -- Submissions: owner read, authenticated insert
-drop policy if exists "wh_submissions_select_own" on public.wh_submissions;
-create policy "wh_submissions_select_own" on public.wh_submissions
-  for select using (auth.uid() = user_id);
+DROP POLICY if EXISTS "wh_submissions_select_own" ON public.wh_submissions;
 
-drop policy if exists "wh_submissions_insert_auth" on public.wh_submissions;
-create policy "wh_submissions_insert_auth" on public.wh_submissions
-  for insert with check (auth.uid() = user_id);
+CREATE POLICY "wh_submissions_select_own" ON public.wh_submissions FOR
+SELECT
+  USING (auth.uid () = user_id);
+
+DROP POLICY if EXISTS "wh_submissions_insert_auth" ON public.wh_submissions;
+
+CREATE POLICY "wh_submissions_insert_auth" ON public.wh_submissions FOR insert
+WITH
+  CHECK (auth.uid () = user_id);
 
 -- Allow authenticated users to delete their own auth record
-create or replace function public.delete_user()
-returns void
-language plpgsql
-security definer
-set search_path = public
-as $$
+CREATE OR REPLACE FUNCTION public.delete_user () returns void language plpgsql security definer
+SET
+  search_path = public AS $$
 begin
   delete from auth.users where id = auth.uid();
 end;
 $$;
 
-grant execute on function public.delete_user() to authenticated;
+GRANT
+EXECUTE ON function public.delete_user () TO authenticated;

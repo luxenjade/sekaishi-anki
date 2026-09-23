@@ -1,4 +1,10 @@
-import type { Field, HistoryQuizItem, Profile, QuizMode, Region } from "../types/quiz";
+import type {
+  Field,
+  HistoryQuizItem,
+  Profile,
+  QuizMode,
+  Region,
+} from "../types/quiz";
 import { getPeriodFromYear } from "./periods";
 
 export function quizModeToDb(mode: QuizMode): string {

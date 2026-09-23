@@ -36,30 +36,30 @@ pnpm preview
 
 ## Documentation
 
-| Doc | Topic |
-| --- | ----- |
-| [docs/overview.md](docs/overview.md) | Product scope, tabs |
-| [docs/quiz.md](docs/quiz.md) | Quiz modes, filters, data loading |
-| [docs/auth-and-sync.md](docs/auth-and-sync.md) | Auth, profile sync, localStorage keys |
-| [docs/review-and-stats.md](docs/review-and-stats.md) | Review queue, ranks, category bars |
-| [docs/submissions.md](docs/submissions.md) | Submit form and approval status |
-| [docs/database.md](docs/database.md) | Schema, migrations, RLS |
-| [docs/local-development.md](docs/local-development.md) | Env, scripts, Netlify deploy |
-| [docs/roadmap.md](docs/roadmap.md) | Honest backlog |
-| [supabase/README.md](supabase/README.md) | Supabase setup steps |
+| Doc                                                    | Topic                                 |
+| ------------------------------------------------------ | ------------------------------------- |
+| [docs/overview.md](docs/overview.md)                   | Product scope, tabs                   |
+| [docs/quiz.md](docs/quiz.md)                           | Quiz modes, filters, data loading     |
+| [docs/auth-and-sync.md](docs/auth-and-sync.md)         | Auth, profile sync, localStorage keys |
+| [docs/review-and-stats.md](docs/review-and-stats.md)   | Review queue, ranks, category bars    |
+| [docs/submissions.md](docs/submissions.md)             | Submit form and approval status       |
+| [docs/database.md](docs/database.md)                   | Schema, migrations, RLS               |
+| [docs/local-development.md](docs/local-development.md) | Env, scripts, Netlify deploy          |
+| [docs/roadmap.md](docs/roadmap.md)                     | Honest backlog                        |
+| [supabase/README.md](supabase/README.md)               | Supabase setup steps                  |
 
 Historical Japanese planning notes live under [`docs/archive/`](docs/archive/).
 
 ## Project layout
 
-| Path | Role |
-| ---- | ---- |
-| `src/` | React app |
-| `src/contexts/AuthContext.tsx` | Auth, profile, DB sync helpers |
-| `src/lib/questions.ts` | Question fetch from Supabase (`wh_dates`) |
-| `src/features/` | Quiz, stats, submit, settings, auth screens |
-| `supabase/migrations/` | User tables, RLS, submission guardrails |
-| `supabase.sql` | Existing question master schema (`wh_dates`, `wh_regions`) |
+| Path                           | Role                                                       |
+| ------------------------------ | ---------------------------------------------------------- |
+| `src/`                         | React app                                                  |
+| `src/contexts/AuthContext.tsx` | Auth, profile, DB sync helpers                             |
+| `src/lib/questions.ts`         | Question fetch from Supabase (`wh_dates`)                  |
+| `src/features/`                | Quiz, stats, submit, settings, auth screens                |
+| `supabase/migrations/`         | User tables, RLS, submission guardrails                    |
+| `supabase.sql`                 | Existing question master schema (`wh_dates`, `wh_regions`) |
 
 ## Deploy (Netlify)
 

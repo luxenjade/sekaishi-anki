@@ -4,22 +4,22 @@ sekaishi-anki is a mobile-first SPA for drilling world-history years. After auth
 
 ## Information architecture
 
-| Tab | Role |
-| --- | ---- |
-| **Quiz** | Setup → session → result; mistakes feed the review queue |
-| **Stats** | Totals, streak, rank, category bars, **and** the review queue UI |
-| **Submit** | Propose new events (`wh_submissions`) |
+| Tab          | Role                                                                         |
+| ------------ | ---------------------------------------------------------------------------- |
+| **Quiz**     | Setup → session → result; mistakes feed the review queue                     |
+| **Stats**    | Totals, streak, rank, category bars, **and** the review queue UI             |
+| **Submit**   | Propose new events (`wh_submissions`)                                        |
 | **Settings** | Username, theme, password reset email, clear data, sign-out / delete account |
 
 Unauthenticated users only see `AuthScreen`. Supabase env vars are **required** — there is no offline demo mode.
 
 ## Requirements
 
-| | |
-| --- | --- |
-| Auth | Supabase Auth (email + password) |
+|           |                                                         |
+| --------- | ------------------------------------------------------- |
+| Auth      | Supabase Auth (email + password)                        |
 | Questions | `wh_dates` via Supabase (empty/error blocks quiz start) |
-| Progress | `profiles`, `review_items`, `wh_submissions` |
+| Progress  | `profiles`, `review_items`, `wh_submissions`            |
 
 Configured via `VITE_SUPABASE_URL` and `VITE_SUPABASE_PB_KEY`. See [auth-and-sync.md](auth-and-sync.md) and [local-development.md](local-development.md).
 

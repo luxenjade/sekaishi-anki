@@ -43,7 +43,9 @@ export function BottomNav({ active, onChange }: BottomNavProps) {
               <Icon
                 className={`w-6 h-6 transition-transform ${isActive ? "scale-110" : ""}`}
               />
-              <span className="text-xs font-bold tracking-wide">{item.label}</span>
+              <span className="text-xs font-bold tracking-wide">
+                {item.label}
+              </span>
             </button>
           );
         })}
