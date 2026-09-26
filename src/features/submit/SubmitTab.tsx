@@ -1,22 +1,8 @@
 import { useState } from "react";
-import { Loader2, Search as SearchIcon } from "lucide-react";
-
-const FIELDS = [
-  "政治",
-  "経済",
-  "文化・宗教",
-  "社会",
-  "外交・戦争",
-  "科学・技術",
-];
-const REGIONS = [
-  "東アジア",
-  "ヨーロッパ",
-  "中東",
-  "アメリカ",
-  "アフリカ",
-  "南アジア",
-];
+import { Loader2, Search as SearchIcon, X } from "lucide-react";
+import { CHAPTERS } from "../../lib/chapters";
+import { THEMES } from "../../lib/themes";
+import { CORE_TAGS, normalizeTagInput, tagLabel } from "../../data/tags";
 
 interface SubmitTabProps {
   onSubmit?: (data: SubmitFormState) => void;
@@ -28,10 +14,16 @@ export interface SubmitFormState {
   year: number | null;
   yearEnd: number | null;
   recordType: string;
+  chapter: string;
   field: string;
-  regions: string[];
+  tags: string[];
   wikipediaUrl: string;
   description: string;
+  /**
+   * 審査ステータス。フォーム入力時には存在せず、Supabaseから取得した
+   * 投稿履歴を表示する際にだけ埋まる（App.tsx の submissions state 経由）。
+   */
+  status?: "pending" | "approved" | "rejected";
 }
 
 const INITIAL: SubmitFormState = {
@@ -39,8 +31,9 @@ const INITIAL: SubmitFormState = {
   year: null,
   yearEnd: null,
   recordType: "event",
-  field: "政治",
-  regions: [],
+  chapter: CHAPTERS[0],
+  field: THEMES[0].key,
+  tags: [],
   wikipediaUrl: "",
   description: "",
 };
@@ -90,6 +83,7 @@ async function searchWikipedia(query: string): Promise<WikiResult[]> {
 export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
   const [form, setForm] = useState<SubmitFormState>(INITIAL);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [customTagInput, setCustomTagInput] = useState("");
 
   // スパム対策: 画面上には表示しないハニーポット欄。
   // ボットは自動的にフォーム内の入力欄を全て埋めがちなので、
@@ -111,12 +105,27 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const toggleRegion = (region: string) => {
+  const toggleTag = (tagKey: string) => {
     setForm((prev) => ({
       ...prev,
-      regions: prev.regions.includes(region)
-        ? prev.regions.filter((r) => r !== region)
-        : [...prev.regions, region],
+      tags: prev.tags.includes(tagKey)
+        ? prev.tags.filter((t) => t !== tagKey)
+        : [...prev.tags, tagKey],
+    }));
+  };
+
+  const addCustomTag = () => {
+    const normalized = normalizeTagInput(customTagInput);
+    setCustomTagInput("");
+    if (!normalized) return;
+    if (form.tags.includes(normalized)) return;
+    setForm((prev) => ({ ...prev, tags: [...prev.tags, normalized] }));
+  };
+
+  const removeTag = (tagKey: string) => {
+    setForm((prev) => ({
+      ...prev,
+      tags: prev.tags.filter((t) => t !== tagKey),
     }));
   };
 
@@ -128,7 +137,7 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
       next.event = "出来事名が長すぎます（300文字以内）。";
     }
     if (form.year === null || Number.isNaN(form.year)) {
-      next.year = "年代を入力してください。";
+      next.year = "年号を入力してください。";
     }
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -150,6 +159,7 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
     // 送信後はフォームをリセット
     setForm(INITIAL);
     setErrors({});
+    setCustomTagInput("");
     setWikiQuery("");
     setWikiResults([]);
     setWikiSearched(false);
@@ -158,7 +168,7 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
   const handleWikipediaSearch = async () => {
     const query = wikiQuery.trim() || form.event.trim();
     if (!query) {
-      setWikiError("キーワード（または出来事名）を入力してください。");
+      setWikiError("検索語（または出来事名）を入力してください。");
       return;
     }
     setWikiLoading(true);
@@ -192,11 +202,14 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
     <div className="w-full space-y-8 animate-fadeIn">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h2 className="text-2xl font-black tracking-tight">投稿</h2>
-          <p className="text-xs font-bold text-slate-400 tracking-wide">
-            データベースへの投稿
+          <h2 className="text-2xl font-black tracking-tight">Contribution</h2>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            Global Database Submission
           </p>
         </div>
+        <span className="px-2 py-0.5 rounded bg-rose-500 text-white text-[8px] font-black uppercase tracking-tighter">
+          Verified Creator
+        </span>
       </div>
 
       <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm space-y-6">
@@ -226,7 +239,7 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
             />
           </div>
 
-          <FormRow label="出来事名" required error={errors.event}>
+          <FormRow label="Event Title" required error={errors.event}>
             <input
               type="text"
               value={form.event}
@@ -241,7 +254,7 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
           </FormRow>
 
           <div className="grid grid-cols-2 gap-4">
-            <FormRow label="開始年" required error={errors.year}>
+            <FormRow label="Start Year" required error={errors.year}>
               <input
                 type="number"
                 value={form.year ?? ""}
@@ -258,11 +271,11 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
                     : "border-slate-200 dark:border-zinc-800"
                 }`}
               />
-              <p className="text-xs text-slate-400 font-bold pl-1">
-                負の数 = 紀元前
+              <p className="text-[8px] text-slate-400 font-bold uppercase pl-1">
+                Negative = BC
               </p>
             </FormRow>
-            <FormRow label="終了年（任意）">
+            <FormRow label="End Year (Optional)">
               <input
                 type="number"
                 value={form.yearEnd ?? ""}
@@ -279,48 +292,111 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <FormRow label="記録タイプ" required>
+            <FormRow label="Record Type" required>
               <select
                 value={form.recordType}
                 onChange={(e) => update("recordType", e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-bold outline-none cursor-pointer"
               >
-                <option value="event">出来事</option>
-                <option value="period">期間</option>
-                <option value="person">人物</option>
+                <option value="event">Event</option>
+                <option value="period">Period</option>
+                <option value="person">Person</option>
               </select>
             </FormRow>
-            <FormRow label="分野">
+            <FormRow label="Theme (テーマ)">
               <select
                 value={form.field}
                 onChange={(e) => update("field", e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-bold outline-none cursor-pointer"
               >
-                {FIELDS.map((f) => (
-                  <option key={f} value={f}>
-                    {f}
+                {THEMES.map((t) => (
+                  <option key={t.key} value={t.key}>
+                    {t.label}
                   </option>
                 ))}
               </select>
             </FormRow>
           </div>
 
-          <FormRow label="地域（複数選択可）">
-            <div className="flex flex-wrap gap-2 p-1">
-              {REGIONS.map((region) => (
-                <button
-                  key={region}
-                  type="button"
-                  onClick={() => toggleRegion(region)}
-                  className={`px-3.5 py-2 rounded-lg border text-sm font-bold transition ${
-                    form.regions.includes(region)
-                      ? "border-brand-blue/40 bg-brand-blue/10 text-brand-blue"
-                      : "border-slate-200 dark:border-zinc-800 hover:border-brand-blue hover:text-brand-blue"
-                  }`}
-                >
-                  {region}
-                </button>
+          <FormRow label="Chapter (出題章)" required>
+            <select
+              value={form.chapter}
+              onChange={(e) => update("chapter", e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-bold outline-none cursor-pointer"
+            >
+              {CHAPTERS.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
               ))}
+            </select>
+          </FormRow>
+
+          <FormRow label="Tags (国・主体, 複数選択可)">
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-2 p-1">
+                {CORE_TAGS.map((tag) => (
+                  <button
+                    key={tag.key}
+                    type="button"
+                    onClick={() => toggleTag(tag.key)}
+                    className={`px-3 py-1.5 rounded-lg border text-[10px] font-bold transition ${
+                      form.tags.includes(tag.key)
+                        ? "border-brand-blue/40 bg-brand-blue/10 text-brand-blue"
+                        : "border-slate-200 dark:border-zinc-800 hover:border-brand-blue hover:text-brand-blue"
+                    }`}
+                  >
+                    #{tag.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={customTagInput}
+                  onChange={(e) => setCustomTagInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addCustomTag();
+                    }
+                  }}
+                  placeholder="上に無いタグを追加 (例: poland)"
+                  className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[11px] font-medium focus:ring-2 focus:ring-brand-blue outline-none transition"
+                />
+                <button
+                  type="button"
+                  onClick={addCustomTag}
+                  className="px-3 py-2 bg-slate-100 dark:bg-zinc-800 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-zinc-700 transition"
+                >
+                  追加
+                </button>
+              </div>
+
+              {form.tags.filter((t) => !CORE_TAGS.some((c) => c.key === t))
+                .length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {form.tags
+                    .filter((t) => !CORE_TAGS.some((c) => c.key === t))
+                    .map((t) => (
+                      <span
+                        key={t}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-brand-blue/10 text-brand-blue text-[10px] font-bold"
+                      >
+                        #{tagLabel(t)}
+                        <button
+                          type="button"
+                          onClick={() => removeTag(t)}
+                          aria-label={`${t}タグを削除`}
+                          className="hover:text-rose-500"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                </div>
+              )}
             </div>
           </FormRow>
 
@@ -338,26 +414,26 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
                   type="button"
                   onClick={handleWikipediaSearch}
                   disabled={wikiLoading}
-                  className="px-4 py-2 bg-slate-100 dark:bg-zinc-800 rounded-xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-zinc-700 transition disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+                  className="px-4 py-2 bg-slate-100 dark:bg-zinc-800 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-zinc-700 transition disabled:opacity-50 flex items-center gap-1.5 shrink-0"
                 >
                   {wikiLoading ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
                     <SearchIcon className="w-3.5 h-3.5" />
                   )}
-                  検索
+                  Search
                 </button>
               </div>
               <input
                 type="text"
                 value={wikiQuery}
                 onChange={(e) => setWikiQuery(e.target.value)}
-                placeholder={`キーワードを入力（空欄なら「${form.event || "出来事名"}」で検索）`}
-                className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm font-medium focus:ring-2 focus:ring-brand-blue outline-none transition"
+                placeholder={`検索語を入力（空欄なら「${form.event || "Event Title"}」で検索）`}
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[11px] font-medium focus:ring-2 focus:ring-brand-blue outline-none transition"
               />
 
               {wikiError && (
-                <p className="text-xs font-semibold text-rose-500 px-1">
+                <p className="text-[10px] font-semibold text-rose-500 px-1">
                   {wikiError}
                 </p>
               )}
@@ -369,10 +445,10 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
                       key={result.url}
                       type="button"
                       onClick={() => pickWikiResult(result)}
-                      className="w-full text-left px-3 py-2.5 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-zinc-800 transition flex items-center justify-between gap-2"
+                      className="w-full text-left px-3 py-2 text-[11px] font-semibold hover:bg-slate-50 dark:hover:bg-zinc-800 transition flex items-center justify-between gap-2"
                     >
                       <span className="truncate">{result.title}</span>
-                      <span className="text-brand-blue text-xs font-bold shrink-0">
+                      <span className="text-brand-blue text-[9px] font-black uppercase shrink-0">
                         選択
                       </span>
                     </button>
@@ -382,12 +458,12 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
             </div>
           </FormRow>
 
-          <FormRow label="説明">
+          <FormRow label="Description">
             <textarea
               value={form.description}
               onChange={(e) => update("description", e.target.value)}
               rows={3}
-              placeholder="クイズカード用の短い説明..."
+              placeholder="Short summary for the quiz card..."
               className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-medium focus:ring-2 focus:ring-brand-blue outline-none resize-none transition"
             />
           </FormRow>
@@ -396,29 +472,29 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
         <button
           type="button"
           onClick={handleSubmit}
-          className="w-full py-4 rounded-xl bg-brand-blue hover:bg-brand-sky text-white font-black text-sm shadow-xl active:scale-[0.98] transition"
+          className="w-full py-4 rounded-xl bg-brand-blue hover:bg-brand-sky text-white font-black text-sm uppercase tracking-widest shadow-xl active:scale-[0.98] transition"
         >
-          データベースに投稿
+          Submit to Database
         </button>
       </div>
 
       {pastSubmissions.length > 0 && (
         <div className="bg-white dark:bg-brand-navy-light p-6 rounded-2xl border border-slate-200 dark:border-brand-slate/30 shadow-sm space-y-4">
-          <h3 className="text-sm font-bold tracking-wide flex items-center gap-2">
+          <h3 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
             投稿履歴 ({pastSubmissions.length})
           </h3>
           <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
             {pastSubmissions.map((sub, idx) => (
               <div
                 key={idx}
-                className="p-4 rounded-xl bg-slate-50 dark:bg-brand-navy border border-slate-100 dark:border-brand-slate/20 flex items-center justify-between gap-3"
+                className="p-4 rounded-xl bg-slate-50 dark:bg-brand-navy border border-slate-100 dark:border-brand-slate/20 flex items-center justify-between"
               >
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
                       {sub.event}
                     </span>
-                    <span className="px-2 py-0.5 rounded bg-brand-blue/15 text-brand-blue border border-brand-blue/20 text-xs font-bold">
+                    <span className="px-1.5 py-0.5 rounded bg-brand-blue/15 text-brand-blue border border-brand-blue/20 text-[8px] font-bold">
                       {sub.year !== null
                         ? sub.year < 0
                           ? `前${Math.abs(sub.year)}年`
@@ -426,19 +502,47 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
                         : "不明"}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400 font-medium leading-relaxed">
+                  <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
                     {sub.description || "説明なし"}
                   </p>
                 </div>
-                <span className="px-2.5 py-1 rounded bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-200 dark:border-emerald-900/30 shrink-0">
-                  承認済み
-                </span>
+                {/*
+                  NOTE: 常に「Approved」固定表示だったのを、実際の status
+                  （デフォルトは pending）に合わせて表示するよう修正。
+                  wh_submissions.status を審査結果としてそのまま見せる。
+                */}
+                <StatusBadge status={sub.status ?? "pending"} />
               </div>
             ))}
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+type SubStatus = "pending" | "approved" | "rejected";
+
+function StatusBadge({ status }: { status: SubStatus }) {
+  const styles: Record<SubStatus, string> = {
+    pending:
+      "bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900/30",
+    approved:
+      "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/30",
+    rejected:
+      "bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/30",
+  };
+  const text: Record<SubStatus, string> = {
+    pending: "審査中",
+    approved: "承認済み",
+    rejected: "非承認",
+  };
+  return (
+    <span
+      className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${styles[status]}`}
+    >
+      {text[status]}
+    </span>
   );
 }
 
@@ -455,13 +559,13 @@ function FormRow({
 }) {
   return (
     <div className="space-y-2">
-      <label className="text-xs font-bold text-slate-400 tracking-wide px-1">
+      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">
         {label}
         {required && <span className="text-rose-500"> *</span>}
       </label>
       {children}
       {error && (
-        <p className="text-xs font-semibold text-rose-500 px-1">{error}</p>
+        <p className="text-[10px] font-semibold text-rose-500 px-1">{error}</p>
       )}
     </div>
   );
