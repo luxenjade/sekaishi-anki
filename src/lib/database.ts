@@ -1,11 +1,8 @@
-import type {
-  Field,
-  HistoryQuizItem,
-  Profile,
-  QuizMode,
-  Region,
-} from "../types/quiz";
+import type { Field, HistoryQuizItem, Profile, QuizMode } from "../types/quiz";
 import { getPeriodFromYear } from "./periods";
+import { UNCLASSIFIED_CHAPTER } from "./chapters";
+import { isKnownTheme } from "./themes";
+import { REGION_LABELS } from "./regions-legacy";
 
 export function quizModeToDb(mode: QuizMode): string {
   return mode.replace(/-/g, "_");
@@ -14,27 +11,6 @@ export function quizModeToDb(mode: QuizMode): string {
 export function quizModeFromDb(mode: string): QuizMode {
   return mode.replace(/_/g, "-") as QuizMode;
 }
-
-/** wh_regions.key → 表示ラベル */
-export const REGION_LABELS: Record<string, string> = {
-  "east-asia": "東アジア",
-  "central-asia": "中央アジア",
-  "south-asia": "南アジア",
-  "middle-east": "中東",
-  europe: "ヨーロッパ",
-  africa: "アフリカ",
-  americas: "アメリカ大陸",
-  oceania: "オセアニア",
-};
-
-/** DB の日本語 field → アプリ内部 Field */
-const FIELD_FROM_DB: Record<string, Field> = {
-  政治: "politics",
-  経済: "economy",
-  "文化・宗教": "culture-religion",
-  社会: "social",
-  "外交・戦争": "war-diplomacy",
-};
 
 export interface DbProfile {
   id: string;
@@ -52,7 +28,7 @@ export interface DbProfile {
   updated_at?: string;
 }
 
-/** supabase.sql の wh_dates スキーマ */
+/** supabase.sql / カテゴリー再設計マイグレーション適用後の wh_dates スキーマ */
 export interface DbWhDate {
   id: number;
   year: number | null;
@@ -60,7 +36,9 @@ export interface DbWhDate {
   full_date: string | null;
   event: string;
   description: string | null;
+  /** @deprecated chapter/tags に置き換え済み。移行期間中のフォールバック用にのみ参照 */
   region: string[] | null;
+  /** テーマキー（politics_war 等）。英語キーでDBに保存されている想定 */
   field: string | null;
   memo: string | null;
   wiki_score: number | null;
@@ -69,6 +47,10 @@ export interface DbWhDate {
   year_end: number | null;
   record_type: string;
   wiki_url: string | null;
+  /** 新設: カテゴリー再設計で追加した列。src/lib/chapters.ts の Chapter のいずれか */
+  chapter: string | null;
+  /** 新設: 国・主体タグのスラッグ配列 */
+  tags: string[] | null;
 }
 
 export interface DbSubmission {
@@ -78,7 +60,8 @@ export interface DbSubmission {
   year_end: number | null;
   event: string;
   description: string | null;
-  region: string[] | null;
+  chapter: string | null;
+  tags: string[] | null;
   field: string | null;
   status: "pending" | "approved" | "rejected";
   reviewer_note: string | null;
@@ -101,45 +84,42 @@ export function mapProfileFromDb(row: DbProfile): Profile {
   };
 }
 
-function mapRegionKey(key: string): Region | undefined {
-  if (key in REGION_LABELS) return key as Region;
-  return undefined;
-}
-
-function regionLabelFromKeys(keys: string[] | null): string {
-  if (!keys?.length) return "未分類";
-  return REGION_LABELS[keys[0]] ?? keys[0];
-}
-
 function mapFieldFromDb(field: string | null): Field | undefined {
   if (!field) return undefined;
-  return FIELD_FROM_DB[field];
+  // DBは英語キー（politics_war 等）で保存されている前提。
+  // 万一未知の値が来た場合は黙って誤分類にせず undefined にする
+  // （以前の実装は未対応値を全部「社会」に丸めてしまい、
+  //  ユーザーが選んだ分類と違う結果になるバグがあった）。
+  return isKnownTheme(field) ? (field as Field) : undefined;
 }
 
 export function mapWhDateToQuizItem(row: DbWhDate): HistoryQuizItem | null {
   if (row.year === null) return null;
 
-  const regionKeys = row.region ?? [];
-  const regionLabel = regionLabelFromKeys(regionKeys);
-  const primaryRegion = regionKeys.length
-    ? mapRegionKey(regionKeys[0])
-    : undefined;
+  // chapter 列が未バックフィルの行に対する暫定フォールバック。
+  // chapter が入っていればそれを正として使う（12分類に無い値、例えば
+  // UNCLASSIFIED_CHAPTER が入っていてもそのまま尊重する）。
+  // 移行期間中、まだ chapter が空の行だけ region から機械的に推測する。
+  const chapter = row.chapter
+    ? row.chapter
+    : row.region?.length
+      ? (REGION_LABELS[row.region[0]] ?? UNCLASSIFIED_CHAPTER)
+      : UNCLASSIFIED_CHAPTER;
 
   return {
     id: String(row.id),
     event: row.event,
     year: row.year,
     is_bc: row.year < 0,
-    // chapter 列がないため地域ラベルを範囲フィルタ用に流用
-    chapter: regionLabel,
+    chapter,
     period: getPeriodFromYear(row.year),
-    region: primaryRegion,
+    tags: row.tags ?? undefined,
     field: mapFieldFromDb(row.field),
     description: row.description ?? undefined,
   };
 }
 
-/** Numeric wh_dates id only — non-numeric ids are not stored in review_items */
+/** Numeric wh_dates id only — mock ids like "wh-1" are not stored in review_items */
 export function isPersistableQuestionId(id: string): boolean {
   return /^\d+$/.test(id);
 }
