@@ -589,10 +589,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#fafaf8] text-[#1a1a1a] dark:bg-[#141414] dark:text-[#f0f0ec] transition-colors duration-200 font-sans flex flex-col pb-20">
-      <Header
-        showAbort={activeTab === "quiz" && quiz.screen !== "start"}
-        onAbort={handleAbortQuiz}
-      />
+      <Header />
 
       <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-6 flex flex-col justify-start overflow-y-auto">
         {activeTab === "quiz" && (
@@ -624,6 +621,7 @@ export default function App() {
                 userAnswerText={quiz.userAnswerText}
                 validationError={quiz.validationError}
                 progress={quiz.progress}
+                onAbort={handleAbortQuiz}
                 onTextAnswer={quiz.handleTextSubmit}
                 onChoiceSelect={quiz.handleChoiceSelect}
                 onNext={quiz.nextQuestion}

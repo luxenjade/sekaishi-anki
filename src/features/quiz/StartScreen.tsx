@@ -1,6 +1,5 @@
 import { AlertTriangle } from "lucide-react";
 import type { QuizMode } from "../../types/quiz";
-import type { QuestionsLoadError } from "../../lib/questions";
 
 interface StartScreenProps {
   mode: QuizMode;
@@ -9,8 +8,7 @@ interface StartScreenProps {
   loading?: boolean;
   rangeOptions: string[];
   rangeLabel?: string;
-  /** 問題マスタの取得エラー（未設定・空・通信失敗） */
-  questionsError?: QuestionsLoadError;
+  showUnexpectedFallbackWarning?: boolean;
   onChangeMode: (m: QuizMode) => void;
   onChangeRange: (r: string) => void;
   onChangeCount: (c: number | "all") => void;
@@ -19,29 +17,6 @@ interface StartScreenProps {
 
 const COUNTS: (number | "all")[] = [5, 10, 20, "all"];
 
-function questionsErrorMessage(error: QuestionsLoadError): {
-  title: string;
-  body: string;
-} | null {
-  if (!error) return null;
-  if (error === "not-configured") {
-    return {
-      title: "Supabase が設定されていません",
-      body: "VITE_SUPABASE_URL と VITE_SUPABASE_PB_KEY を設定してください。",
-    };
-  }
-  if (error === "empty") {
-    return {
-      title: "問題データがありません",
-      body: "wh_dates に出題可能な出来事が登録されていません。データベースを確認してください。",
-    };
-  }
-  return {
-    title: "問題データの取得に失敗しました",
-    body: "ネットワークや Supabase の状態を確認し、ページを再読み込みしてください。",
-  };
-}
-
 export function StartScreen({
   mode,
   range,
@@ -49,15 +24,14 @@ export function StartScreen({
   loading = false,
   rangeOptions,
   rangeLabel,
-  questionsError = null,
+  showUnexpectedFallbackWarning = false,
   onChangeMode,
   onChangeRange,
   onChangeCount,
   onStart,
 }: StartScreenProps) {
   const defaultRangeLabel = mode === "event-to-year" ? "出題地域" : "時代区分";
-  const errorInfo = questionsErrorMessage(questionsError);
-  const canStart = !loading && !questionsError && rangeOptions.length >= 0;
+  const canStart = !loading;
 
   return (
     <div className="w-full bg-white dark:bg-brand-navy-light rounded-2xl border border-slate-200 dark:border-brand-slate/30 shadow-sm p-6 sm:p-8 space-y-6 animate-fadeIn">
@@ -70,12 +44,15 @@ export function StartScreen({
         </p>
       </div>
 
-      {errorInfo && (
+      {showUnexpectedFallbackWarning && (
         <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-800 dark:text-rose-200 flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           <div className="text-sm leading-relaxed">
-            <p className="font-bold">{errorInfo.title}</p>
-            <p className="opacity-90">{errorInfo.body}</p>
+            <p className="font-bold">問題データの取得に問題があります</p>
+            <p className="opacity-90">
+              データベースから問題を取得できなかったため、サンプル問題を表示しています。
+              ネットワークや Supabase の状態を確認してください。
+            </p>
           </div>
         </div>
       )}
@@ -109,7 +86,6 @@ export function StartScreen({
         <select
           value={range}
           onChange={(e) => onChangeRange(e.target.value)}
-          disabled={Boolean(questionsError)}
           className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-brand-slate/30 bg-slate-50 dark:bg-brand-navy text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent transition appearance-none cursor-pointer disabled:opacity-50"
         >
           <option value="all">すべての範囲から出題</option>
@@ -132,7 +108,6 @@ export function StartScreen({
               key={c}
               type="button"
               onClick={() => onChangeCount(c)}
-              disabled={Boolean(questionsError)}
               className={`py-2 px-3 rounded-lg border text-xs font-bold transition disabled:opacity-50 ${
                 count === c
                   ? "border-brand-blue bg-brand-blue/10 text-brand-blue ring-1 ring-brand-blue"
@@ -148,7 +123,7 @@ export function StartScreen({
       <button
         type="button"
         onClick={onStart}
-        disabled={!canStart || Boolean(questionsError)}
+        disabled={!canStart}
         className="w-full py-4 rounded-xl bg-brand-blue hover:bg-brand-sky active:scale-[0.99] text-white font-bold text-sm tracking-wide transition-all flex items-center justify-center gap-2 disabled:opacity-50"
       >
         {loading ? "問題データを読み込み中..." : "クイズを開始"}

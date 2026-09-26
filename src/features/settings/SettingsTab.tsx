@@ -33,6 +33,7 @@ interface SettingsTabProps {
   onResetPassword?: (email: string) => Promise<{ error: Error | null }>;
   theme?: "light" | "dark";
   onChangeTheme?: (theme: "light" | "dark") => void;
+  isSynced?: boolean;
 }
 
 export function SettingsTab({
@@ -44,6 +45,7 @@ export function SettingsTab({
   onResetPassword,
   theme: themeProp,
   onChangeTheme,
+  isSynced = true,
 }: SettingsTabProps) {
   const { theme: localTheme, setTheme } = useTheme();
   const theme = themeProp ?? localTheme;
@@ -66,6 +68,7 @@ export function SettingsTab({
           onDeleteAccount={onDeleteAccount}
           onSaveProfile={onSaveProfile}
           onResetPassword={onResetPassword}
+          isSynced={isSynced}
         />
 
         <AppearanceSection theme={theme} onChangeTheme={handleThemeChange} />
@@ -91,6 +94,7 @@ function AccountSection({
   onDeleteAccount,
   onSaveProfile,
   onResetPassword,
+  isSynced,
 }: {
   username: string;
   email: string;
@@ -98,6 +102,7 @@ function AccountSection({
   onDeleteAccount?: () => void;
   onSaveProfile?: (username: string) => void;
   onResetPassword?: (email: string) => Promise<{ error: Error | null }>;
+  isSynced: boolean;
 }) {
   const [usernameInput, setUsernameInput] = useState(username);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
@@ -131,8 +136,14 @@ function AccountSection({
             <p className="text-sm font-black">{username}</p>
             <p className="text-xs font-bold text-slate-400 truncate">{email}</p>
           </div>
-          <span className="ml-auto px-2.5 py-1 rounded-md text-xs font-bold border shrink-0 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30">
-            クラウド同期
+          <span
+            className={`ml-auto px-2.5 py-1 rounded-md text-xs font-bold border shrink-0 ${
+              isSynced
+                ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30"
+                : "bg-slate-50 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-700"
+            }`}
+          >
+            {isSynced ? "クラウド同期" : "ローカル保存"}
           </span>
         </div>
 
