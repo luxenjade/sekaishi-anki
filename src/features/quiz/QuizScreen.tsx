@@ -53,14 +53,6 @@ export function QuizScreen({
     <div className="w-full space-y-6 animate-fadeIn">
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={onAbort}
-            className="inline-flex items-center justify-center gap-1.5 min-h-11 px-4 rounded-xl border border-slate-200 dark:border-brand-slate/40 bg-white dark:bg-brand-navy-light text-sm font-bold text-slate-600 dark:text-zinc-200 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 dark:hover:border-rose-800 dark:hover:bg-rose-950/30 dark:hover:text-rose-400 active:scale-[0.98] transition shadow-sm"
-          >
-            <X className="w-4 h-4" aria-hidden />
-            クイズを中止
-          </button>
           <div className="text-right min-w-0">
             <p className="text-xs font-bold text-slate-400 dark:text-zinc-500 truncate">
               {chapterOrPeriod}
