@@ -4,52 +4,29 @@ export type QuizMode = "event-to-year" | "year-to-event";
 
 export type QuizScreen = "start" | "quiz" | "result";
 
-export type AppTab = "quiz" | "stats" | "submit" | "settings";
+export type AppTab = "quiz" | "stats" | "submit" | "settings" | "admin";
 
-export type StatsView = "summary" | "review-cards";
-
-/**
- * @deprecated 2026-09のカテゴリー再設計で撤去対象。
- * 大陸区分は chapter（東アジア王朝／南アジア王朝など）が実質的に内包しており、
- * region と chapter の意味が衝突する問題を起こしていたため、今後は使わない。
- * DBの region 列・wh_regions テーブル自体はまだ残っているが、
- * アプリからは参照・書き込みしない。既存データ移行のためだけに型を残す。
- */
-export type Region =
-  | "east-asia"
-  | "central-asia"
-  | "south-asia"
-  | "middle-east"
-  | "europe"
-  | "africa"
-  | "americas"
-  | "oceania";
-
-/**
- * テーマ別分類。値は src/lib/themes.ts の THEMES と一致させること
- * （DBのCHECK制約も同じ英語キーに揃えている）。
- */
-export type Field =
-  "politics_war" | "economy_society" | "religion" | "culture_science";
+/** wh_dates.theme（4値の主題軸） */
+export type QuestionTheme =
+  | "politics_war"
+  | "economy_society"
+  | "religion"
+  | "culture_science";
 
 export interface HistoryQuizItem {
   id: string;
   event: string;
   year: number; // 紀元前は負の値 (例: -221)
   is_bc: boolean; // 紀元前フラグ
-  /**
-   * 出来事→年号モードの出題範囲。src/lib/chapters.ts の Chapter
-   * （またはUNCLASSIFIED_CHAPTER）のいずれか。
-   * データソース（mock / Supabase）を問わず同じ意味を持つ。
-   */
-  chapter: string;
-  period: string; // 年号→出来事モードの出題範囲（時代区分）
-  /** @deprecated 撤去予定。互換のため一時的に残す */
-  region?: Region;
-  field?: Field;
-  /** 国・主体レベルの横断タグ（#なしのスラッグ配列）。例: ["france", "japan"] */
-  tags?: string[];
+  chapter: string; // 出来事→年号の分類（章の表示ラベル）
+  period: string; // 年号→出来事の分類（時代区分）
+  tags?: string[]; // 国・地域などの横断タグ（wh_tags.key）
+  theme?: QuestionTheme;
   description?: string;
+  /** @deprecated 旧スキーマ。mockEvents.ts の移行が終わったら削除する */
+  region?: string;
+  /** @deprecated 旧スキーマ。mockEvents.ts の移行が終わったら削除する */
+  field?: string;
 }
 
 export interface QuizMistake {
@@ -64,27 +41,10 @@ export interface QuizResult {
   mistakes: QuizMistake[];
 }
 
-export interface ReviewItem {
-  id: string;
-  questionId: string;
-  addedAt: string;
-  reviewCount: number;
-  lastReviewedAt: string | null;
-  // 結合済みデータ
-  item?: HistoryQuizItem;
-}
-
-export interface FieldStat {
-  field: Field;
-  answered: number;
-  correct: number;
-}
-
 export interface Profile {
   id: string;
   username: string;
   avatarUrl: string | null;
-  quizMode: QuizMode;
   theme: "light" | "dark" | "system";
   totalAnswered: number;
   totalCorrect: number;
@@ -94,14 +54,16 @@ export interface Profile {
   rankPoints: number;
 }
 
+export type SubmissionStatus = "pending" | "approved" | "rejected";
+
+/** wh_submissions の1行（オフライン時はローカル生成） */
 export interface Submission {
-  id?: string;
+  id: number | string;
   year: number;
-  yearEnd?: number | null;
   event: string;
-  description?: string;
-  chapter?: string;
-  tags?: string[];
-  field?: Field | null;
-  status?: "pending" | "approved" | "rejected";
+  description: string | null;
+  wiki_url: string | null;
+  status: SubmissionStatus;
+  reviewer_note?: string | null;
+  created_at: string;
 }

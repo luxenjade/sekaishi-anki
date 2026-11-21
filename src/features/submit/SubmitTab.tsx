@@ -1,516 +1,357 @@
-import { useState } from "react";
-import { Loader2, Search as SearchIcon, X } from "lucide-react";
-import { CHAPTERS } from "../../lib/chapters";
-import { THEMES } from "../../lib/themes";
-import { CORE_TAGS, normalizeTagInput, tagLabel } from "../../data/tags";
+import { useEffect, useState } from "react";
+import { AlertTriangle } from "lucide-react";
+import { isSimilarEvent } from "../../lib/similar";
+import { formatYear } from "../../lib/quiz";
+import type { Submission } from "../../types/quiz";
 
-interface SubmitTabProps {
-  onSubmit?: (data: SubmitFormState) => void;
-  pastSubmissions?: SubmitFormState[];
-}
-
+/** 提出内容。分類（章・タグ・テーマ）は admin が承認時に付けるので入力しない */
 export interface SubmitFormState {
   event: string;
-  year: number | null;
-  yearEnd: number | null;
-  recordType: string;
-  chapter: string;
-  field: string;
-  tags: string[];
-  wikipediaUrl: string;
+  year: number;
   description: string;
-  /**
-   * 審査ステータス。フォーム入力時には存在せず、Supabaseから取得した
-   * 投稿履歴を表示する際にだけ埋まる（App.tsx の submissions state 経由）。
-   */
-  status?: "pending" | "approved" | "rejected";
+  wikiUrl: string;
 }
 
-const INITIAL: SubmitFormState = {
-  event: "",
-  year: null,
-  yearEnd: null,
-  recordType: "event",
-  chapter: CHAPTERS[0],
-  field: THEMES[0].key,
-  tags: [],
-  wikipediaUrl: "",
-  description: "",
+interface SubmitTabProps {
+  /** 成功したら true を返す（true のときだけフォームをリセット） */
+  onSubmit: (data: SubmitFormState) => Promise<boolean>;
+  pastSubmissions?: Submission[];
+  /** 同じ年の公開済み問題を返す（重複警告用） */
+  checkSameYear: (year: number) => Promise<{ id: string; event: string }[]>;
+}
+
+const MIN_YEAR = -4000;
+const MAX_YEAR = 2100;
+
+const inputClass =
+  "w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-bold focus:ring-2 focus:ring-brand-blue outline-none transition";
+
+function parseYear(text: string): number | null {
+  const t = text.trim();
+  if (!/^-?\d{1,4}$/.test(t)) return null;
+  const n = Number(t);
+  return n >= MIN_YEAR && n <= MAX_YEAR ? n : null;
+}
+
+const STATUS_STYLE: Record<Submission["status"], { label: string; className: string }> = {
+  pending: {
+    label: "審査待ち",
+    className:
+      "bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900/30",
+  },
+  approved: {
+    label: "公開済み",
+    className:
+      "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/30",
+  },
+  rejected: {
+    label: "見送り",
+    className:
+      "bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/30",
+  },
 };
 
-interface FormErrors {
-  event?: string;
-  year?: string;
-}
+export function SubmitTab({
+  onSubmit,
+  pastSubmissions = [],
+  checkSameYear,
+}: SubmitTabProps) {
+  const [event, setEvent] = useState("");
+  const [yearText, setYearText] = useState("");
+  const [description, setDescription] = useState("");
+  const [wikiUrl, setWikiUrl] = useState("");
+  const [honeypot, setHoneypot] = useState(""); // bot 対策（人間には見えない欄）
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-interface WikiResult {
-  title: string;
-  url: string;
-}
-
-/**
- * ja.wikipedia.org の opensearch API をブラウザから直接呼び出す。
- * origin=* を付けるとCORSが許可されるため、バックエンドのプロキシは不要。
- * 参考: https://www.mediawiki.org/wiki/API:Opensearch
- */
-async function searchWikipedia(query: string): Promise<WikiResult[]> {
-  const trimmed = query.trim();
-  if (!trimmed) return [];
-
-  const params = new URLSearchParams({
-    action: "opensearch",
-    search: trimmed,
-    limit: "5",
-    namespace: "0",
-    format: "json",
-    origin: "*",
-  });
-
-  const res = await fetch(
-    `https://ja.wikipedia.org/w/api.php?${params.toString()}`,
-  );
-  if (!res.ok) {
-    throw new Error(`Wikipedia検索に失敗しました (HTTP ${res.status})`);
-  }
-  const data = (await res.json()) as [string, string[], string[], string[]];
-  const titles = data[1] ?? [];
-  const urls = data[3] ?? [];
-  return titles
-    .map((title, i) => ({ title, url: urls[i] ?? "" }))
-    .filter((r) => r.url);
-}
-
-export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
-  const [form, setForm] = useState<SubmitFormState>(INITIAL);
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [customTagInput, setCustomTagInput] = useState("");
-
-  // スパム対策: 画面上には表示しないハニーポット欄。
-  // ボットは自動的にフォーム内の入力欄を全て埋めがちなので、
-  // 「人間には見えないが存在はする」フィールドが埋まっていたら
-  // 静かに送信を破棄する（エラーは出さず、ボット側に気づかせない）。
-  const [honeypot, setHoneypot] = useState("");
-
-  // Wikipedia検索の状態
-  const [wikiQuery, setWikiQuery] = useState("");
-  const [wikiResults, setWikiResults] = useState<WikiResult[]>([]);
+  const [sameYear, setSameYear] = useState<{ id: string; event: string }[]>([]);
+  const [wikiResults, setWikiResults] = useState<{ title: string; url: string }[]>([]);
   const [wikiLoading, setWikiLoading] = useState(false);
-  const [wikiError, setWikiError] = useState<string | null>(null);
-  const [wikiSearched, setWikiSearched] = useState(false);
 
-  const update = <K extends keyof SubmitFormState>(
-    key: K,
-    value: SubmitFormState[K],
-  ) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  };
+  const year = parseYear(yearText);
 
-  const toggleTag = (tagKey: string) => {
-    setForm((prev) => ({
-      ...prev,
-      tags: prev.tags.includes(tagKey)
-        ? prev.tags.filter((t) => t !== tagKey)
-        : [...prev.tags, tagKey],
-    }));
-  };
-
-  const addCustomTag = () => {
-    const normalized = normalizeTagInput(customTagInput);
-    setCustomTagInput("");
-    if (!normalized) return;
-    if (form.tags.includes(normalized)) return;
-    setForm((prev) => ({ ...prev, tags: [...prev.tags, normalized] }));
-  };
-
-  const removeTag = (tagKey: string) => {
-    setForm((prev) => ({
-      ...prev,
-      tags: prev.tags.filter((t) => t !== tagKey),
-    }));
-  };
-
-  const validate = (): boolean => {
-    const next: FormErrors = {};
-    if (!form.event.trim()) {
-      next.event = "出来事名を入力してください。";
-    } else if (form.event.trim().length > 300) {
-      next.event = "出来事名が長すぎます（300文字以内）。";
-    }
-    if (form.year === null || Number.isNaN(form.year)) {
-      next.year = "年号を入力してください。";
-    }
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  };
-
-  const handleSubmit = () => {
-    // ハニーポットが埋まっている = ボットの可能性が高いので静かに破棄。
-    // 人間の利用者にはこのフィールド自体が見えていないため、
-    // エラーを出さずに（あたかも成功したかのように振る舞い）終える。
-    if (honeypot.trim() !== "") {
-      setForm(INITIAL);
-      setErrors({});
+  // 年が入力されたら、同じ年の公開済み問題を調べて重複を警告する
+  useEffect(() => {
+    if (year === null) {
+      setSameYear([]);
       return;
     }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      checkSameYear(year)
+        .then((rows) => {
+          if (!cancelled) setSameYear(rows);
+        })
+        .catch(() => {
+          if (!cancelled) setSameYear([]);
+        });
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [year, checkSameYear]);
 
-    if (!validate()) return;
+  const similar = sameYear.filter((row) => isSimilarEvent(row.event, event));
 
-    if (onSubmit) onSubmit(form);
-    // 送信後はフォームをリセット
-    setForm(INITIAL);
-    setErrors({});
-    setCustomTagInput("");
-    setWikiQuery("");
-    setWikiResults([]);
-    setWikiSearched(false);
-  };
-
-  const handleWikipediaSearch = async () => {
-    const query = wikiQuery.trim() || form.event.trim();
-    if (!query) {
-      setWikiError("検索語（または出来事名）を入力してください。");
-      return;
-    }
+  const searchWikipedia = async () => {
+    const q = event.trim();
+    if (!q) return;
     setWikiLoading(true);
-    setWikiError(null);
-    setWikiSearched(true);
+    setWikiResults([]);
     try {
-      const results = await searchWikipedia(query);
-      setWikiResults(results);
-      if (results.length === 0) {
-        setWikiError("該当する記事が見つかりませんでした。");
-      }
-    } catch (e) {
-      setWikiError(
-        e instanceof Error
-          ? e.message
-          : "Wikipedia検索中にエラーが発生しました。",
-      );
+      const url = `https://ja.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(
+        q,
+      )}&limit=5&namespace=0&format=json&origin=*`;
+      const res = await fetch(url);
+      const json = (await res.json()) as [string, string[], string[], string[]];
+      setWikiResults(json[1].map((title, i) => ({ title, url: json[3][i] })));
+    } catch {
       setWikiResults([]);
     } finally {
       setWikiLoading(false);
     }
   };
 
-  const pickWikiResult = (result: WikiResult) => {
-    update("wikipediaUrl", result.url);
+  const handleSubmit = async () => {
+    setError(null);
+
+    // honeypot が埋まっていたら bot とみなし、成功したふりをして破棄する
+    if (honeypot) {
+      resetForm();
+      return;
+    }
+
+    const trimmed = event.trim();
+    if (!trimmed) {
+      setError("出来事名を入力してください。");
+      return;
+    }
+    if (trimmed.length > 100) {
+      setError("出来事名は100文字以内にしてください。");
+      return;
+    }
+    if (year === null) {
+      setError(`年は整数で入力してください（${MIN_YEAR}〜${MAX_YEAR}、紀元前はマイナス）。`);
+      return;
+    }
+    if (description.length > 500) {
+      setError("説明は500文字以内にしてください。");
+      return;
+    }
+    const url = wikiUrl.trim();
+    if (url && !/^https:\/\/[^\s]+$/.test(url)) {
+      setError("Wikipedia URL は https:// から始まる形式で入力してください。");
+      return;
+    }
+
+    setSubmitting(true);
+    const ok = await onSubmit({
+      event: trimmed,
+      year,
+      description: description.trim(),
+      wikiUrl: url,
+    });
+    setSubmitting(false);
+    if (ok) resetForm();
+  };
+
+  const resetForm = () => {
+    setEvent("");
+    setYearText("");
+    setDescription("");
+    setWikiUrl("");
+    setHoneypot("");
+    setSameYear([]);
     setWikiResults([]);
-    setWikiSearched(false);
+    setError(null);
   };
 
   return (
     <div className="w-full space-y-8 animate-fadeIn">
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-black tracking-tight">Contribution</h2>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            Global Database Submission
-          </p>
-        </div>
+      <div className="space-y-1">
+        <h2 className="text-2xl font-black tracking-tight">Contribution</h2>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+          問題を提出（管理者の承認後に公開）
+        </p>
       </div>
 
       <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm space-y-6">
         <div className="space-y-4">
-          {/* ハニーポット: 通常のユーザーには見えない。CSSで隠し、
-              tabIndex/autoComplete も外してスクリーンリーダー・キーボード操作の
-              邪魔にならないようにする。name はボットが好んで狙う典型的な語にする。 */}
-          <div
-            aria-hidden="true"
-            style={{
-              position: "absolute",
-              left: "-9999px",
-              width: "1px",
-              height: "1px",
-              overflow: "hidden",
-            }}
-          >
-            <label htmlFor="website">Website</label>
+          <FormRow label="出来事名" required>
             <input
-              id="website"
-              name="website"
               type="text"
-              tabIndex={-1}
-              autoComplete="off"
-              value={honeypot}
-              onChange={(e) => setHoneypot(e.target.value)}
+              value={event}
+              maxLength={100}
+              onChange={(e) => setEvent(e.target.value)}
+              placeholder="例: 唐の成立 / ローマ帝国の東西分裂"
+              className={inputClass}
             />
-          </div>
+          </FormRow>
 
-          <FormRow label="Event Title" required error={errors.event}>
+          <FormRow label="年（西暦）" required>
             <input
               type="text"
-              value={form.event}
-              onChange={(e) => update("event", e.target.value)}
-              placeholder="例: ローマ帝国の分裂"
-              className={`w-full px-4 py-3 rounded-xl border bg-slate-50 dark:bg-zinc-950 text-sm font-bold focus:ring-2 focus:ring-brand-blue outline-none transition ${
-                errors.event
-                  ? "border-rose-400 dark:border-rose-600"
-                  : "border-slate-200 dark:border-zinc-800"
+              inputMode="numeric"
+              value={yearText}
+              onChange={(e) => setYearText(e.target.value)}
+              placeholder="例: 618 / -221"
+              className={inputClass}
+            />
+            <p className="text-[9px] text-slate-400 font-bold uppercase pl-1">
+              紀元前はマイナス（例: -221）
+            </p>
+          </FormRow>
+
+          {sameYear.length > 0 && (
+            <div
+              className={`p-4 rounded-xl border text-xs space-y-2 ${
+                similar.length > 0
+                  ? "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-200"
+                  : "border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-slate-600 dark:text-zinc-300"
               }`}
-            />
-          </FormRow>
-
-          <div className="grid grid-cols-2 gap-4">
-            <FormRow label="Start Year" required error={errors.year}>
-              <input
-                type="number"
-                value={form.year ?? ""}
-                onChange={(e) =>
-                  update(
-                    "year",
-                    e.target.value === "" ? null : Number(e.target.value),
-                  )
-                }
-                placeholder="-221"
-                className={`w-full px-4 py-3 rounded-xl border bg-slate-50 dark:bg-zinc-950 text-sm font-bold focus:ring-2 focus:ring-brand-blue outline-none transition ${
-                  errors.year
-                    ? "border-rose-400 dark:border-rose-600"
-                    : "border-slate-200 dark:border-zinc-800"
-                }`}
-              />
-              <p className="text-[8px] text-slate-400 font-bold uppercase pl-1">
-                Negative = BC
-              </p>
-            </FormRow>
-            <FormRow label="End Year (Optional)">
-              <input
-                type="number"
-                value={form.yearEnd ?? ""}
-                onChange={(e) =>
-                  update(
-                    "yearEnd",
-                    e.target.value === "" ? null : Number(e.target.value),
-                  )
-                }
-                placeholder="395"
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-bold focus:ring-2 focus:ring-brand-blue outline-none transition"
-              />
-            </FormRow>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <FormRow label="Record Type" required>
-              <select
-                value={form.recordType}
-                onChange={(e) => update("recordType", e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-bold outline-none cursor-pointer"
-              >
-                <option value="event">Event</option>
-                <option value="period">Period</option>
-                <option value="person">Person</option>
-              </select>
-            </FormRow>
-            <FormRow label="Theme (テーマ)">
-              <select
-                value={form.field}
-                onChange={(e) => update("field", e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-bold outline-none cursor-pointer"
-              >
-                {THEMES.map((t) => (
-                  <option key={t.key} value={t.key}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </FormRow>
-          </div>
-
-          <FormRow label="Chapter (出題章)" required>
-            <select
-              value={form.chapter}
-              onChange={(e) => update("chapter", e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-bold outline-none cursor-pointer"
             >
-              {CHAPTERS.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </FormRow>
-
-          <FormRow label="Tags (国・主体, 複数選択可)">
-            <div className="space-y-2">
-              <div className="flex flex-wrap gap-2 p-1">
-                {CORE_TAGS.map((tag) => (
-                  <button
-                    key={tag.key}
-                    type="button"
-                    onClick={() => toggleTag(tag.key)}
-                    className={`px-3 py-1.5 rounded-lg border text-[10px] font-bold transition ${
-                      form.tags.includes(tag.key)
-                        ? "border-brand-blue/40 bg-brand-blue/10 text-brand-blue"
-                        : "border-slate-200 dark:border-zinc-800 hover:border-brand-blue hover:text-brand-blue"
-                    }`}
+              <p className="font-bold flex items-center gap-1.5">
+                {similar.length > 0 && <AlertTriangle className="w-3.5 h-3.5" />}
+                {year !== null ? formatYear(year) : ""}には登録済みの問題があります
+                {similar.length > 0 && "（似た名称あり）"}
+              </p>
+              <ul className="space-y-1">
+                {sameYear.map((row) => (
+                  <li
+                    key={row.id}
+                    className={
+                      isSimilarEvent(row.event, event) ? "font-black" : "opacity-80"
+                    }
                   >
-                    #{tag.label}
+                    ・{row.event}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-[10px] opacity-70">
+                同じ年でも別の出来事なら提出できます。すでにある問題と同じ内容でないか確認してください。
+              </p>
+            </div>
+          )}
+
+          <FormRow label="Wikipedia URL（任意）">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={wikiUrl}
+                onChange={(e) => setWikiUrl(e.target.value)}
+                placeholder="https://ja.wikipedia.org/wiki/..."
+                className={`flex-1 ${inputClass}`}
+              />
+              <button
+                type="button"
+                onClick={searchWikipedia}
+                disabled={wikiLoading || !event.trim()}
+                className="px-4 py-2 bg-slate-100 dark:bg-zinc-800 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition disabled:opacity-50"
+              >
+                {wikiLoading ? "..." : "Search"}
+              </button>
+            </div>
+            {wikiResults.length > 0 && (
+              <div className="flex flex-col gap-1 pt-1">
+                {wikiResults.map((r) => (
+                  <button
+                    key={r.url}
+                    type="button"
+                    onClick={() => {
+                      setWikiUrl(r.url);
+                      setWikiResults([]);
+                    }}
+                    className="text-left text-[11px] font-semibold px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-800 hover:border-brand-blue hover:text-brand-blue transition"
+                  >
+                    {r.title}
                   </button>
                 ))}
               </div>
-
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={customTagInput}
-                  onChange={(e) => setCustomTagInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addCustomTag();
-                    }
-                  }}
-                  placeholder="上に無いタグを追加 (例: poland)"
-                  className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[11px] font-medium focus:ring-2 focus:ring-brand-blue outline-none transition"
-                />
-                <button
-                  type="button"
-                  onClick={addCustomTag}
-                  className="px-3 py-2 bg-slate-100 dark:bg-zinc-800 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-zinc-700 transition"
-                >
-                  追加
-                </button>
-              </div>
-
-              {form.tags.filter((t) => !CORE_TAGS.some((c) => c.key === t))
-                .length > 0 && (
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {form.tags
-                    .filter((t) => !CORE_TAGS.some((c) => c.key === t))
-                    .map((t) => (
-                      <span
-                        key={t}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-brand-blue/10 text-brand-blue text-[10px] font-bold"
-                      >
-                        #{tagLabel(t)}
-                        <button
-                          type="button"
-                          onClick={() => removeTag(t)}
-                          aria-label={`${t}タグを削除`}
-                          className="hover:text-rose-500"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                    ))}
-                </div>
-              )}
-            </div>
+            )}
           </FormRow>
 
-          <FormRow label="Wikipedia URL">
-            <div className="space-y-2">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={form.wikipediaUrl}
-                  onChange={(e) => update("wikipediaUrl", e.target.value)}
-                  placeholder="https://ja.wikipedia.org/wiki/..."
-                  className="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-bold focus:ring-2 focus:ring-brand-blue outline-none transition"
-                />
-                <button
-                  type="button"
-                  onClick={handleWikipediaSearch}
-                  disabled={wikiLoading}
-                  className="px-4 py-2 bg-slate-100 dark:bg-zinc-800 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-zinc-700 transition disabled:opacity-50 flex items-center gap-1.5 shrink-0"
-                >
-                  {wikiLoading ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <SearchIcon className="w-3.5 h-3.5" />
-                  )}
-                  Search
-                </button>
-              </div>
-              <input
-                type="text"
-                value={wikiQuery}
-                onChange={(e) => setWikiQuery(e.target.value)}
-                placeholder={`検索語を入力（空欄なら「${form.event || "Event Title"}」で検索）`}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[11px] font-medium focus:ring-2 focus:ring-brand-blue outline-none transition"
-              />
-
-              {wikiError && (
-                <p className="text-[10px] font-semibold text-rose-500 px-1">
-                  {wikiError}
-                </p>
-              )}
-
-              {wikiSearched && wikiResults.length > 0 && (
-                <div className="rounded-xl border border-slate-200 dark:border-zinc-800 divide-y divide-slate-100 dark:divide-zinc-800 overflow-hidden">
-                  {wikiResults.map((result) => (
-                    <button
-                      key={result.url}
-                      type="button"
-                      onClick={() => pickWikiResult(result)}
-                      className="w-full text-left px-3 py-2 text-[11px] font-semibold hover:bg-slate-50 dark:hover:bg-zinc-800 transition flex items-center justify-between gap-2"
-                    >
-                      <span className="truncate">{result.title}</span>
-                      <span className="text-brand-blue text-[9px] font-black uppercase shrink-0">
-                        選択
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </FormRow>
-
-          <FormRow label="Description">
+          <FormRow label="説明（任意）">
             <textarea
-              value={form.description}
-              onChange={(e) => update("description", e.target.value)}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              placeholder="Short summary for the quiz card..."
+              maxLength={500}
+              placeholder="年の根拠や補足など（例: 西ローマ帝国の滅亡は476年とする）"
               className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-sm font-medium focus:ring-2 focus:ring-brand-blue outline-none resize-none transition"
             />
           </FormRow>
+
+          {/* honeypot: 人間には見えない・タブ移動もされない */}
+          <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
+            <label>
+              Website
+              <input
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                value={honeypot}
+                onChange={(e) => setHoneypot(e.target.value)}
+              />
+            </label>
+          </div>
         </div>
+
+        {error && (
+          <p className="text-xs text-rose-500 dark:text-rose-400 font-semibold text-center">
+            {error}
+          </p>
+        )}
 
         <button
           type="button"
           onClick={handleSubmit}
-          className="w-full py-4 rounded-xl bg-brand-blue hover:bg-brand-sky text-white font-black text-sm uppercase tracking-widest shadow-xl active:scale-[0.98] transition"
+          disabled={submitting}
+          className="w-full py-4 rounded-xl bg-brand-blue hover:bg-brand-sky text-white font-black text-sm uppercase tracking-widest shadow-xl active:scale-[0.98] transition disabled:opacity-50"
         >
-          Submit to Database
+          {submitting ? "送信中..." : "Submit"}
         </button>
+        <p className="text-[10px] text-slate-400 text-center font-semibold">
+          章・テーマ・タグなどの分類は、管理者が承認時に付けます。
+        </p>
       </div>
 
       {pastSubmissions.length > 0 && (
         <div className="bg-white dark:bg-brand-navy-light p-6 rounded-2xl border border-slate-200 dark:border-brand-slate/30 shadow-sm space-y-4">
-          <h3 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
-            投稿履歴 ({pastSubmissions.length})
+          <h3 className="text-xs font-bold uppercase tracking-widest">
+            提出履歴 ({pastSubmissions.length})
           </h3>
           <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-            {pastSubmissions.map((sub, idx) => (
-              <div
-                key={idx}
-                className="p-4 rounded-xl bg-slate-50 dark:bg-brand-navy border border-slate-100 dark:border-brand-slate/20 flex items-center justify-between"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                      {sub.event}
-                    </span>
-                    <span className="px-1.5 py-0.5 rounded bg-brand-blue/15 text-brand-blue border border-brand-blue/20 text-[8px] font-bold">
-                      {sub.year !== null
-                        ? sub.year < 0
-                          ? `前${Math.abs(sub.year)}年`
-                          : `${sub.year}年`
-                        : "不明"}
-                    </span>
+            {pastSubmissions.map((sub) => {
+              const style = STATUS_STYLE[sub.status];
+              return (
+                <div
+                  key={sub.id}
+                  className="p-4 rounded-xl bg-slate-50 dark:bg-brand-navy border border-slate-100 dark:border-brand-slate/20 flex items-center justify-between gap-3"
+                >
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                        {sub.event}
+                      </span>
+                      <span className="shrink-0 px-1.5 py-0.5 rounded bg-brand-blue/15 text-brand-blue border border-brand-blue/20 text-[8px] font-bold">
+                        {formatYear(sub.year)}
+                      </span>
+                    </div>
+                    {sub.status === "rejected" && sub.reviewer_note && (
+                      <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+                        {sub.reviewer_note}
+                      </p>
+                    )}
                   </div>
-                  <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
-                    {sub.description || "説明なし"}
-                  </p>
+                  <span
+                    className={`shrink-0 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${style.className}`}
+                  >
+                    {style.label}
+                  </span>
                 </div>
-                {/*
-                  NOTE: 常に「Approved」固定表示だったのを、実際の status
-                  （デフォルトは pending）に合わせて表示するよう修正。
-                  wh_submissions.status を審査結果としてそのまま見せる。
-                */}
-                <StatusBadge status={sub.status ?? "pending"} />
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -518,40 +359,13 @@ export function SubmitTab({ onSubmit, pastSubmissions = [] }: SubmitTabProps) {
   );
 }
 
-type SubStatus = "pending" | "approved" | "rejected";
-
-function StatusBadge({ status }: { status: SubStatus }) {
-  const styles: Record<SubStatus, string> = {
-    pending:
-      "bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900/30",
-    approved:
-      "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/30",
-    rejected:
-      "bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/30",
-  };
-  const text: Record<SubStatus, string> = {
-    pending: "審査中",
-    approved: "承認済み",
-    rejected: "非承認",
-  };
-  return (
-    <span
-      className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border ${styles[status]}`}
-    >
-      {text[status]}
-    </span>
-  );
-}
-
 function FormRow({
   label,
   required,
-  error,
   children,
 }: {
   label: string;
   required?: boolean;
-  error?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -561,9 +375,6 @@ function FormRow({
         {required && <span className="text-rose-500"> *</span>}
       </label>
       {children}
-      {error && (
-        <p className="text-[10px] font-semibold text-rose-500 px-1">{error}</p>
-      )}
     </div>
   );
 }

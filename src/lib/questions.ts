@@ -1,30 +1,24 @@
 import { supabase, isSupabaseConfigured } from "./supabase";
 import { mockHistoryData } from "../data/mockEvents";
-import { mapWhDateToQuizItem, type DbWhDate } from "./database";
-import { CHAPTERS } from "./chapters";
+import {
+  DB_WH_DATE_COLUMNS,
+  mapWhDateToQuizItem,
+  type DbWhDate,
+} from "./database";
+import { CHAPTERS } from "./taxonomy";
 import { PERIODS } from "./periods";
 import type { HistoryQuizItem, QuizMode } from "../types/quiz";
 
 const PAGE_SIZE = 1000;
-// 異常系（想定外に大量の行が返り続ける等）で無限ループしないための安全上限。
-// wh_dates が現実的な規模を大きく超えた場合はここで打ち切り、警告を出す。
-const MAX_PAGES = 50; // PAGE_SIZE(1000) * 50 = 最大5万件まで取得
+const MAX_PAGES = 50; // 無限ループ防止（最大5万件）
 
-export type QuestionSource = "supabase" | "mock";
-
-/**
- * mock データへフォールバックした理由。
- * - "not-configured": Supabase の環境変数が設定されていない（意図的なデモモード）
- * - "empty": Supabase は設定済みだが wh_dates が空だった（想定外・要調査）
- * - "error": Supabase への問い合わせ自体が失敗した（想定外・要調査）
- * - null: フォールバックしていない（source === "supabase"）
- */
-export type FallbackReason = "not-configured" | "empty" | "error" | null;
+export type FallbackReason = "not-configured" | "empty" | "error";
 
 export interface FetchQuestionsResult {
   items: HistoryQuizItem[];
-  source: QuestionSource;
-  fallbackReason: FallbackReason;
+  source: "supabase" | "mock";
+  /** モックに切り替わった理由（source === "mock" のときのみ） */
+  fallbackReason?: FallbackReason;
 }
 
 export async function fetchQuestions(): Promise<FetchQuestionsResult> {
@@ -38,101 +32,77 @@ export async function fetchQuestions(): Promise<FetchQuestionsResult> {
 
   try {
     const allRows: DbWhDate[] = [];
-    let from = 0;
-    let page = 0;
 
-    for (;;) {
-      page += 1;
-      if (page > MAX_PAGES) {
-        console.warn(
-          `wh_dates fetch aborted after ${MAX_PAGES} pages (${allRows.length} rows) — hit MAX_PAGES safety limit.`,
-        );
-        break;
-      }
-
+    for (let page = 0; page < MAX_PAGES; page++) {
+      const from = page * PAGE_SIZE;
       const { data, error } = await supabase
         .from("wh_dates")
-        .select(
-          "id, year, date_type, event, description, region, field, year_end, record_type, chapter, tags",
-        )
-        .eq("record_type", "event")
-        .not("year", "is", null)
+        .select(DB_WH_DATE_COLUMNS)
+        .eq("is_published", true)
         .order("year", { ascending: true })
+        .order("id", { ascending: true })
         .range(from, from + PAGE_SIZE - 1);
 
       if (error) throw error;
       if (!data?.length) break;
 
-      allRows.push(...(data as DbWhDate[]));
+      allRows.push(...(data as unknown as DbWhDate[]));
       if (data.length < PAGE_SIZE) break;
-      from += PAGE_SIZE;
     }
 
     const items = allRows
-      .map(mapWhDateToQuizItem)
+      .map((row) => mapWhDateToQuizItem(row))
       .filter((item): item is HistoryQuizItem => item !== null);
 
     if (items.length === 0) {
-      // Supabase は設定されているのにデータが無い = 本番のはずが空、はサイレントに
-      // 隠すべきではないバグ状態。呼び出し側（App.tsx）で明示的にユーザーへ知らせる。
-      console.warn("wh_dates is empty — falling back to mock data");
-      return {
-        items: mockHistoryData,
-        source: "mock",
-        fallbackReason: "empty",
-      };
+      console.warn("wh_dates に公開済みの問題がありません — モックデータを使用します");
+      return { items: mockHistoryData, source: "mock", fallbackReason: "empty" };
     }
 
-    return { items, source: "supabase", fallbackReason: null };
+    return { items, source: "supabase" };
   } catch (err) {
     console.error("Failed to fetch wh_dates:", err);
     return { items: mockHistoryData, source: "mock", fallbackReason: "error" };
   }
 }
 
-export async function fetchQuestionsByYear(
+/** 同じ年の公開済み問題（提出時の重複警告用） */
+export async function fetchPublishedByYear(
   year: number,
-): Promise<HistoryQuizItem[]> {
+): Promise<{ id: string; event: string }[]> {
   if (!isSupabaseConfigured()) {
-    return mockHistoryData.filter((item) => item.year === year);
+    return mockHistoryData
+      .filter((item) => item.year === year)
+      .map((item) => ({ id: item.id, event: item.event }));
   }
 
   const { data, error } = await supabase
     .from("wh_dates")
-    .select(
-      "id, year, date_type, event, description, region, field, year_end, record_type, chapter, tags",
-    )
+    .select("id, event")
     .eq("year", year)
-    .eq("record_type", "event");
+    .eq("is_published", true);
 
-  if (error || !data?.length) {
-    return mockHistoryData.filter((item) => item.year === year);
-  }
-
-  return (data as DbWhDate[])
-    .map(mapWhDateToQuizItem)
-    .filter((item): item is HistoryQuizItem => item !== null);
+  if (error || !data) return [];
+  return (data as { id: number; event: string }[]).map((row) => ({
+    id: String(row.id),
+    event: row.event,
+  }));
 }
 
-/**
- * 出題範囲セレクトの選択肢をプールから動的生成する。
- * chapter は「第1章」のような文字列の辞書順ソートだと 第10章 が 第2章 より
- * 前に来てしまう（旧実装のバグ）ため、カリキュラム順の CHAPTERS / PERIODS を
- * 正として並べ、プールに存在するものだけを残す。
- */
+/** 出題範囲セレクトの選択肢をプールから動的生成（章・時代区分は定義順に並べる） */
 export function getRangeOptions(
   pool: HistoryQuizItem[],
   mode: QuizMode,
 ): string[] {
   const key = mode === "event-to-year" ? "chapter" : "period";
   const present = new Set(pool.map((item) => item[key]));
-  const canonicalOrder: readonly string[] =
-    mode === "event-to-year" ? CHAPTERS : PERIODS;
 
-  const ordered = canonicalOrder.filter((v) => present.has(v));
-  // カリキュラム順リストに無い値（分類保留など）は末尾にアルファベット順で追加
-  const extras = Array.from(present)
-    .filter((v) => !canonicalOrder.includes(v))
-    .sort();
-  return [...ordered, ...extras];
+  const order: string[] =
+    mode === "event-to-year"
+      ? CHAPTERS.map((c) => c.label)
+      : [...PERIODS];
+
+  const ordered = order.filter((label) => present.has(label));
+  const rest = [...present].filter((label) => !order.includes(label)).sort();
+  return [...ordered, ...rest];
 }

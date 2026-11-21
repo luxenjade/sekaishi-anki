@@ -12,8 +12,23 @@ import {
   isPersistableQuestionId,
   type DbProfile,
 } from "../lib/database";
-import { validateSubmitField, mapSubmitTags } from "../lib/submit-mappers";
 import type { Profile } from "../types/quiz";
+
+type AuthResult = { error: AuthError | Error | null };
+
+/** 1問ぶんの解答結果（id は HistoryQuizItem.id） */
+export interface QuizAnswer {
+  questionId: string;
+  isCorrect: boolean;
+}
+
+/** 問題の提出内容。分類（章・タグ・テーマ）は admin が承認時に付ける */
+export interface SubmitEventInput {
+  event: string;
+  year: number;
+  description?: string;
+  wikiUrl?: string;
+}
 
 export interface AuthContextType {
   user: User | null;
@@ -21,48 +36,29 @@ export interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   isOfflineMode: boolean;
-  signUp: (
-    email: string,
-    password: string,
-    username: string,
-  ) => Promise<{ error: AuthError | Error | null }>;
-  signIn: (
-    email: string,
-    password: string,
-  ) => Promise<{ error: AuthError | Error | null }>;
+  /** admin_users に登録されているか（画面表示用。実際の権限は DB 側の RLS / RPC が守る） */
+  isAdmin: boolean;
+  signUp: (email: string, password: string, username: string) => Promise<AuthResult>;
+  signIn: (email: string, password: string) => Promise<AuthResult>;
   signOut: () => Promise<void>;
-  resetPassword: (
-    email: string,
-  ) => Promise<{ error: AuthError | Error | null }>;
-  deleteAccount: () => Promise<{ error: AuthError | Error | null }>;
-  updateProfile: (
-    username: string,
-  ) => Promise<{ error: AuthError | Error | null }>;
+  resetPassword: (email: string) => Promise<AuthResult>;
+  deleteAccount: () => Promise<AuthResult>;
+  updateProfile: (username: string) => Promise<AuthResult>;
   updateTheme: (theme: Profile["theme"]) => Promise<void>;
-  syncReviewItem: (
-    item: { id: string },
-    action: "add" | "remove",
-  ) => Promise<void>;
-  submitEvent: (eventData: {
-    event: string;
-    year: number | null;
-    yearEnd?: number | null;
-    description?: string;
-    chapter?: string;
-    field?: string;
-    tags?: string[];
-  }) => Promise<{ error: AuthError | Error | null }>;
+  /** 復習キューから手動で外す（= 正解扱いにする） */
+  dismissReviewItem: (questionId: string) => Promise<void>;
+  submitEvent: (input: SubmitEventInput) => Promise<AuthResult>;
   refreshProfile: () => Promise<void>;
-  saveQuizResults: (
-    score: number,
-    total: number,
-    mistakes: { item: { id: string } }[],
-  ) => Promise<void>;
+  /** クイズ結果を記録（スコア・連続日数・ランクはサーバー側 RPC が計算） */
+  saveQuizResults: (answers: QuizAnswer[]) => Promise<AuthResult>;
+  /** 学習データ（成績・集計）のリセット */
+  resetStats: () => Promise<AuthResult>;
   bypassAuth: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) throw new Error("useAuth must be used within an AuthProvider");
@@ -77,7 +73,6 @@ function defaultOfflineProfile(userId: string, username: string): Profile {
     id: userId,
     username,
     avatarUrl: null,
-    quizMode: "event-to-year",
     theme: "light",
     totalAnswered: 0,
     totalCorrect: 0,
@@ -85,6 +80,27 @@ function defaultOfflineProfile(userId: string, username: string): Profile {
     streakBest: 0,
     lastPlayedAt: null,
     rankPoints: 0,
+  };
+}
+
+/** オフライン（デモ）モード用: サーバー RPC と同じ規則でプロフィール集計を更新 */
+function applyResultsToProfile(p: Profile, score: number, total: number): Profile {
+  const today = new Date().toLocaleDateString("en-CA");
+  const yesterday = new Date(Date.now() - 86400000).toLocaleDateString("en-CA");
+
+  let streak = p.streakCurrent;
+  if (p.lastPlayedAt !== today) {
+    streak = p.lastPlayedAt === yesterday ? streak + 1 : 1;
+  }
+
+  return {
+    ...p,
+    totalAnswered: p.totalAnswered + total,
+    totalCorrect: p.totalCorrect + score,
+    streakCurrent: streak,
+    streakBest: Math.max(p.streakBest, streak),
+    lastPlayedAt: today,
+    rankPoints: p.rankPoints + score * 10,
   };
 }
 
@@ -96,17 +112,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isOfflineMode, setIsOfflineMode] = useState(!isSupabaseConfigured());
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const configured = isSupabaseConfigured();
+  const userId = user?.id ?? null;
 
   const fetchProfile = useCallback(
-    async (userId: string) => {
+    async (id: string, email?: string | null) => {
       if (!configured || isOfflineMode) return;
 
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("id", userId)
+        .eq("id", id)
         .maybeSingle();
 
       if (error) {
@@ -119,13 +137,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         return;
       }
 
-      // Fallback if trigger did not run yet
+      // トリガーがまだ走っていない場合のフォールバック（id と username のみ挿入可能）
       const { data: created, error: insertError } = await supabase
         .from("profiles")
-        .insert({
-          id: userId,
-          username: user?.email?.split("@")[0] ?? "User",
-        })
+        .insert({ id, username: email?.split("@")[0] ?? "User" })
         .select()
         .single();
 
@@ -135,11 +150,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setProfile(mapProfileFromDb(created as DbProfile));
       }
     },
-    [configured, isOfflineMode, user?.email],
+    [configured, isOfflineMode],
   );
 
   const refreshProfile = useCallback(async () => {
-    if (user?.id) await fetchProfile(user.id);
+    if (user?.id) await fetchProfile(user.id, user.email);
   }, [user, fetchProfile]);
 
   useEffect(() => {
@@ -162,7 +177,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
-      if (s?.user) fetchProfile(s.user.id);
+      if (s?.user) fetchProfile(s.user.id, s.user.email);
       setLoading(false);
     });
 
@@ -171,13 +186,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
       setUser(s?.user ?? null);
-      if (s?.user) fetchProfile(s.user.id);
+      if (s?.user) fetchProfile(s.user.id, s.user.email);
       else setProfile(null);
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, [configured, fetchProfile]);
+
+  // admin 判定（画面の出し分け用）。権限そのものは RLS / RPC が守る
+  useEffect(() => {
+    if (!userId || !configured || isOfflineMode) {
+      setIsAdmin(false);
+      return;
+    }
+    let cancelled = false;
+    supabase.rpc("is_admin").then(({ data, error }) => {
+      if (!cancelled) setIsAdmin(!error && data === true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, configured, isOfflineMode]);
 
   const bypassAuth = useCallback(() => {
     setIsOfflineMode(true);
@@ -195,7 +225,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, []);
 
-  const signUp = async (email: string, password: string, username: string) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    username: string,
+  ): Promise<AuthResult> => {
     if (!configured || isOfflineMode) {
       const mockU = { id: `user-${Date.now()}`, email };
       setUser({ id: mockU.id, email } as User);
@@ -214,7 +248,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return { error };
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string): Promise<AuthResult> => {
     if (!configured || isOfflineMode) {
       const mockUserStr = localStorage.getItem(OFFLINE_USER_KEY);
       let u = mockUserStr
@@ -234,10 +268,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       return { error: null };
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error };
   };
 
@@ -253,11 +284,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setProfile(null);
   };
 
-  const resetPassword = async (email: string) => {
+  const resetPassword = async (email: string): Promise<AuthResult> => {
     if (!configured || isOfflineMode) {
-      return {
-        error: new Error("パスワードリセットはオンライン認証が必要です。"),
-      };
+      return { error: new Error("パスワードリセットはオンライン認証が必要です。") };
     }
     const redirectTo = `${window.location.origin}/`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -266,7 +295,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return { error };
   };
 
-  const deleteAccount = async () => {
+  /** アカウント削除（DB 側 RPC が原子的に処理。失敗時はサインアウトしない） */
+  const deleteAccount = async (): Promise<AuthResult> => {
     if (!configured || isOfflineMode || !user) {
       setUser(null);
       setProfile(null);
@@ -275,23 +305,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       return { error: null };
     }
 
-    await supabase.from("review_items").delete().eq("user_id", user.id);
-    await supabase.from("field_stats").delete().eq("user_id", user.id);
-    await supabase.from("wh_submissions").delete().eq("user_id", user.id);
-    await supabase.from("profiles").delete().eq("id", user.id);
+    const { error } = await supabase.rpc("delete_own_account");
+    if (error) return { error };
 
-    const { error } = await supabase.rpc("delete_user");
-    if (error) {
-      // RPC may not exist — sign out after clearing app data
-      console.warn("delete_user RPC unavailable:", error.message);
-    }
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
     return { error: null };
   };
 
-  const updateProfile = async (username: string) => {
+  const updateProfile = async (username: string): Promise<AuthResult> => {
     if (!configured || isOfflineMode) {
       setProfile((prev) => {
         if (!prev) return null;
@@ -303,9 +326,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     if (!user) return { error: new Error("Not authenticated") };
 
+    // updated_at は DB のトリガーが更新する
     const { error } = await supabase
       .from("profiles")
-      .update({ username, updated_at: new Date().toISOString() })
+      .update({ username })
       .eq("id", user.id);
 
     if (!error) await refreshProfile();
@@ -325,146 +349,85 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
 
-    await supabase
-      .from("profiles")
-      .update({ theme, updated_at: new Date().toISOString() })
-      .eq("id", user.id);
+    await supabase.from("profiles").update({ theme }).eq("id", user.id);
   };
 
-  const syncReviewItem = async (
-    item: { id: string },
-    action: "add" | "remove",
-  ) => {
+  const dismissReviewItem = async (questionId: string) => {
     if (!configured || isOfflineMode || !user) return;
-    if (!isPersistableQuestionId(item.id)) return;
+    if (!isPersistableQuestionId(questionId)) return;
 
-    if (action === "add") {
-      await supabase.from("review_items").upsert(
-        {
-          user_id: user.id,
-          question_id: Number(item.id),
-          last_reviewed_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id,question_id" },
-      );
-    } else {
-      await supabase
-        .from("review_items")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("question_id", Number(item.id));
-    }
+    const { error } = await supabase.rpc("dismiss_review_item", {
+      p_question_id: Number(questionId),
+    });
+    if (error) console.error("dismiss_review_item failed:", error.message);
   };
 
-  const submitEvent = async (eventData: {
-    event: string;
-    year: number | null;
-    yearEnd?: number | null;
-    description?: string;
-    chapter?: string;
-    field?: string;
-    tags?: string[];
-  }) => {
-    // 防御的バリデーション（多層防御の1つ）。
-    // 本来の入力チェックは SubmitTab.tsx 側のフォームで行うが、
-    // submitEvent は他の呼び出し元からも呼ばれ得るため、ここでも
-    // 空文字・年号未入力の投稿を弾く。DB側にも CHECK 制約を用意しているので
-    // 万一ここを迂回されても wh_submissions への挿入自体が失敗する。
-    const trimmedEvent = eventData.event.trim();
-    if (!trimmedEvent) {
-      return { error: new Error("出来事名を入力してください。") };
-    }
-    if (eventData.year === null || Number.isNaN(eventData.year)) {
-      return { error: new Error("年号を入力してください。") };
-    }
-
+  const submitEvent = async (input: SubmitEventInput): Promise<AuthResult> => {
     if (!configured || isOfflineMode || !user) {
       return { error: null };
     }
 
-    const validatedField = eventData.field
-      ? validateSubmitField(eventData.field)
-      : null;
-
     const { error } = await supabase.from("wh_submissions").insert({
       user_id: user.id,
-      year: eventData.year,
-      year_end: eventData.yearEnd ?? null,
-      event: trimmedEvent,
-      description: eventData.description ?? null,
-      chapter: eventData.chapter ?? null,
-      tags: mapSubmitTags(eventData.tags ?? []),
-      field: validatedField,
-      status: "pending",
+      year: input.year,
+      event: input.event,
+      description: input.description?.trim() || null,
+      wiki_url: input.wikiUrl?.trim() || null,
     });
     return { error };
   };
 
-  const saveQuizResults = async (
-    score: number,
-    total: number,
-    mistakes: { item: { id: string } }[],
-  ) => {
-    if (!user) return;
+  const saveQuizResults = async (answers: QuizAnswer[]): Promise<AuthResult> => {
+    if (!user || answers.length === 0) return { error: null };
 
-    if (!configured || isOfflineMode) return;
-
-    const today = new Date().toLocaleDateString("en-CA");
-
-    const { data: profileData, error: profileErr } = await supabase
-      .from("profiles")
-      .select(
-        "streak_current, streak_best, last_played_at, total_answered, total_correct, rank_points",
-      )
-      .eq("id", user.id)
-      .single();
-
-    if (!profileErr && profileData) {
-      let streakCurrent = profileData.streak_current as number;
-      const lastPlay = profileData.last_played_at as string | null;
-      const yesterday = new Date(Date.now() - 86400000).toLocaleDateString(
-        "en-CA",
-      );
-
-      if (lastPlay !== today) {
-        streakCurrent = lastPlay === yesterday ? streakCurrent + 1 : 1;
+    // オフライン: サーバー RPC と同じ規則でローカルのプロフィールを更新
+    if (!configured || isOfflineMode) {
+      if (profile) {
+        const score = answers.filter((a) => a.isCorrect).length;
+        const updated = applyResultsToProfile(profile, score, answers.length);
+        setProfile(updated);
+        localStorage.setItem(OFFLINE_PROFILE_KEY, JSON.stringify(updated));
       }
-
-      const streakBest = Math.max(
-        profileData.streak_best as number,
-        streakCurrent,
-      );
-      const rankPoints = (profileData.rank_points as number) + score * 10;
-
-      await supabase
-        .from("profiles")
-        .update({
-          total_answered: (profileData.total_answered as number) + total,
-          total_correct: (profileData.total_correct as number) + score,
-          streak_current: streakCurrent,
-          streak_best: streakBest,
-          last_played_at: today,
-          rank_points: rankPoints,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id);
+      return { error: null };
     }
 
-    const persistable = mistakes.filter((m) =>
-      isPersistableQuestionId(m.item.id),
-    );
-    if (persistable.length > 0) {
-      await supabase.from("review_items").upsert(
-        persistable.map((m) => ({
-          user_id: user.id,
-          question_id: Number(m.item.id),
-          added_at: new Date().toISOString(),
-        })),
-        { onConflict: "user_id,question_id" },
-      );
-    }
+    // モックの "wh-1" のような非数値IDは保存できないので除外
+    const persistable = answers
+      .filter((a) => isPersistableQuestionId(a.questionId))
+      .map((a) => ({ question_id: Number(a.questionId), is_correct: a.isCorrect }));
+    if (persistable.length === 0) return { error: null };
+
+    const { error } = await supabase.rpc("record_quiz_result", {
+      p_answers: persistable,
+    });
+    if (error) return { error };
 
     await refreshProfile();
+    return { error: null };
+  };
+
+  const resetStats = async (): Promise<AuthResult> => {
+    if (!configured || isOfflineMode || !user) {
+      if (profile) {
+        const reset: Profile = {
+          ...profile,
+          totalAnswered: 0,
+          totalCorrect: 0,
+          streakCurrent: 0,
+          streakBest: 0,
+          lastPlayedAt: null,
+          rankPoints: 0,
+        };
+        setProfile(reset);
+        localStorage.setItem(OFFLINE_PROFILE_KEY, JSON.stringify(reset));
+      }
+      return { error: null };
+    }
+
+    const { error } = await supabase.rpc("reset_own_stats");
+    if (error) return { error };
+    await refreshProfile();
+    return { error: null };
   };
 
   return (
@@ -475,6 +438,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         profile,
         loading,
         isOfflineMode,
+        isAdmin,
         signUp,
         signIn,
         signOut,
@@ -482,10 +446,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         deleteAccount,
         updateProfile,
         updateTheme,
-        syncReviewItem,
+        dismissReviewItem,
         submitEvent,
         refreshProfile,
         saveQuizResults,
+        resetStats,
         bypassAuth,
       }}
     >

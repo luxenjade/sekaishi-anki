@@ -3,30 +3,37 @@ import {
   PlusSquare,
   PlayCircle,
   Settings as SettingsIcon,
+  ShieldCheck,
 } from "lucide-react";
 import type { AppTab } from "../../types/quiz";
 
 interface BottomNavProps {
   active: AppTab;
   onChange: (tab: AppTab) => void;
+  /** admin のときだけ管理タブを表示 */
+  showAdmin?: boolean;
 }
 
 const NAV_ITEMS: {
   id: AppTab;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  adminOnly?: boolean;
 }[] = [
-  { id: "quiz", label: "学習", icon: PlayCircle },
-  { id: "stats", label: "統計", icon: BarChart3 },
-  { id: "submit", label: "投稿", icon: PlusSquare },
-  { id: "settings", label: "設定", icon: SettingsIcon },
+  { id: "quiz", label: "Learn", icon: PlayCircle },
+  { id: "stats", label: "Stats", icon: BarChart3 },
+  { id: "submit", label: "Post", icon: PlusSquare },
+  { id: "admin", label: "Admin", icon: ShieldCheck, adminOnly: true },
+  { id: "settings", label: "Config", icon: SettingsIcon },
 ];
 
-export function BottomNav({ active, onChange }: BottomNavProps) {
+export function BottomNav({ active, onChange, showAdmin = false }: BottomNavProps) {
+  const items = NAV_ITEMS.filter((item) => !item.adminOnly || showAdmin);
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 border-t border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-2 z-50">
       <div className="max-w-2xl mx-auto flex justify-between items-center">
-        {NAV_ITEMS.map((item) => {
+        {items.map((item) => {
           const Icon = item.icon;
           const isActive = active === item.id;
           return (
@@ -43,7 +50,7 @@ export function BottomNav({ active, onChange }: BottomNavProps) {
               <Icon
                 className={`w-6 h-6 transition-transform ${isActive ? "scale-110" : ""}`}
               />
-              <span className="text-xs font-bold tracking-wide">
+              <span className="text-[9px] font-black uppercase tracking-widest">
                 {item.label}
               </span>
             </button>
