@@ -310,7 +310,7 @@ function TextAnswerForm({ onSubmit, error }: TextAnswerFormProps) {
             setDigits(toDigits(e.target.value));
             setLocalError(null);
           }}
-          placeholder="1789"
+          placeholder="Answer"
           aria-label="年"
           className="w-[180px] max-[600px]:w-[150px] px-4 py-3 rounded-qz-md border-2 border-qz-border bg-qz-surface text-qz-text text-center text-[1.4rem] max-[600px]:text-[1.2rem] font-bold tabular-nums outline-none transition focus:border-qz-accent focus:ring-[3px] focus:ring-qz-accent-ring placeholder:text-qz-border"
         />

@@ -243,7 +243,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { username } },
+      options: {
+        data: { username },
+        // 確認メールのリンクは、アプリ本体（/app）に戻す
+        emailRedirectTo: `${window.location.origin}/app`,
+      },
     });
     return { error };
   };
@@ -288,7 +292,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!configured || isOfflineMode) {
       return { error: new Error("パスワードリセットはオンライン認証が必要です。") };
     }
-    const redirectTo = `${window.location.origin}/`;
+    const redirectTo = `${window.location.origin}/app`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo,
     });
