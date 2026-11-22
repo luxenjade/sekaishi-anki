@@ -275,7 +275,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#fafaf8] dark:bg-[#141414] text-[#1a1a1a] dark:text-[#f0f0ec] flex flex-col justify-center items-center font-sans">
+      <div className="min-h-screen bg-qz-bg text-qz-text flex flex-col justify-center items-center font-sans">
         <div className="w-10 h-10 border-4 border-brand-blue border-t-transparent rounded-full animate-spin"></div>
         <p className="text-xs font-bold text-slate-400 mt-4 tracking-wider uppercase">
           Loading Session...
@@ -299,9 +299,9 @@ export default function App() {
     fallbackReason !== "not-configured";
 
   return (
-    <div className="min-h-screen bg-[#fafaf8] text-[#1a1a1a] dark:bg-[#141414] dark:text-[#f0f0ec] transition-colors duration-200 font-sans flex flex-col">
+    <div className="min-h-screen bg-qz-bg text-qz-text transition-colors duration-200 font-sans flex flex-col">
       <main
-        className={`flex-1 max-w-2xl w-full mx-auto px-4 pt-6 flex flex-col justify-start overflow-y-auto ${
+        className={`flex-1 max-w-[860px] w-full mx-auto px-3 sm:px-4 pt-6 flex flex-col justify-start overflow-y-auto ${
           inQuiz ? "pb-8" : "pb-24"
         }`}
       >

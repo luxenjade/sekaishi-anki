@@ -4,10 +4,27 @@ export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        sans: [
+          '"Hiragino Kaku Gothic ProN"',
+          '"Hiragino Sans"',
+          '"Yu Gothic"',
+          "YuGothic",
+          "Meiryo",
+          "sans-serif",
+        ],
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        "qz-sm": "6px",
+        "qz-md": "12px",
+        "qz-lg": "20px",
+      },
+      boxShadow: {
+        "qz-sm": "var(--qz-shadow-sm)",
+        "qz-md": "var(--qz-shadow-md)",
       },
       colors: {
         background: "hsl(var(--background))",
@@ -50,14 +67,35 @@ export default {
           4: "hsl(var(--chart-4))",
           5: "hsl(var(--chart-5))",
         },
+
+        // クイズUIのデザイントークン（実体は src/index.css の CSS 変数。ダークモードも変数で切り替わる）
+        qz: {
+          bg: "var(--qz-bg)",
+          surface: "var(--qz-surface)",
+          surface2: "var(--qz-surface-2)",
+          text: "var(--qz-text)",
+          sub: "var(--qz-text-sub)",
+          border: "var(--qz-border)",
+          accent: "var(--qz-accent)",
+          ink: "var(--qz-ink)", // 金色の上に載せる文字色
+          "accent-text": "var(--qz-accent-text)", // 金色を「文字」として使うときの色
+          "accent-light": "var(--qz-accent-light)",
+          "accent-ring": "var(--qz-accent-ring)",
+          correct: "var(--qz-correct)",
+          "correct-bg": "var(--qz-correct-bg)",
+          incorrect: "var(--qz-incorrect)",
+          "incorrect-bg": "var(--qz-incorrect-bg)",
+        },
+
+        // 旧クラス名（brand-*）。塗りは金色に差し替え。文字色の補正は index.css の互換ルール参照
         brand: {
-          sky: "#3b82f6",
+          sky: "#ffc958",
           navy: "#141414",
-          blue: "#2563eb",
+          blue: "#faba40",
           slate: "#333330",
           "navy-light": "#1e1e1e",
           "navy-dark": "#0f0f0f",
-          "blue-light": "#eff6ff",
+          "blue-light": "#fff8e8",
         },
       },
     },

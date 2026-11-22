@@ -4,31 +4,51 @@
 
 @layer base {
   :root {
-    --background: 60 9% 98%;
-    --foreground: 240 10% 10%;
+    /* shadcn 系トークン（HSL）。強調色を金色に */
+    --background: 60 14% 98%;
+    --foreground: 0 0% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 10%;
+    --card-foreground: 0 0% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 10%;
-    --primary: 221 83% 53%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 221 83% 53%;
-    --secondary-foreground: 240 10% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 221 83% 53%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 84.2% 60.2%;
+    --popover-foreground: 0 0% 10%;
+    --primary: 39 95% 62%;
+    --primary-foreground: 215 22% 24%;
+    --secondary: 60 9% 95%;
+    --secondary-foreground: 0 0% 10%;
+    --muted: 60 9% 95%;
+    --muted-foreground: 0 0% 35%;
+    --accent: 39 95% 62%;
+    --accent-foreground: 215 22% 24%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
-    --border: 60 9% 88%;
-    --input: 60 9% 88%;
-    --ring: 221 83% 53%;
+    --border: 60 9% 86%;
+    --input: 60 9% 86%;
+    --ring: 39 95% 62%;
     --radius: 0.75rem;
-    --chart-1: 221 83% 53%;
-    --chart-2: 213 94% 68%;
-    --chart-3: 201 30% 47%;
-    --chart-4: 240 10% 10%;
-    --chart-5: 201 30% 70%;
+    --chart-1: 39 95% 62%;
+    --chart-2: 215 22% 24%;
+    --chart-3: 142 71% 36%;
+    --chart-4: 0 0% 10%;
+    --chart-5: 39 70% 80%;
+
+    /* クイズUIのデザイントークン */
+    --qz-accent: #faba40;
+    --qz-ink: #313a49;
+    --qz-accent-text: #313a49;
+    --qz-accent-light: rgba(250, 186, 64, 0.12);
+    --qz-accent-ring: rgba(250, 186, 64, 0.25);
+    --qz-bg: #fafaf8;
+    --qz-surface: #ffffff;
+    --qz-surface-2: #f4f4f0;
+    --qz-text: #1a1a1a;
+    --qz-text-sub: #5a5a5a;
+    --qz-border: #e0e0da;
+    --qz-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --qz-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+    --qz-correct: #16a34a;
+    --qz-correct-bg: #dcfce7;
+    --qz-incorrect: #dc2626;
+    --qz-incorrect-bg: #fee2e2;
   }
   .dark {
     --background: 0 0% 8%;
@@ -37,24 +57,38 @@
     --card-foreground: 60 9% 94%;
     --popover: 0 0% 12%;
     --popover-foreground: 60 9% 94%;
-    --primary: 213 94% 68%;
-    --primary-foreground: 222 47% 11%;
-    --secondary: 213 94% 68%;
-    --secondary-foreground: 210 33% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 213 94% 68%;
-    --accent-foreground: 222 47% 11%;
+    --primary: 39 95% 62%;
+    --primary-foreground: 215 22% 24%;
+    --secondary: 0 0% 16%;
+    --secondary-foreground: 60 9% 94%;
+    --muted: 0 0% 16%;
+    --muted-foreground: 60 4% 62%;
+    --accent: 39 95% 62%;
+    --accent-foreground: 215 22% 24%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 60 9% 20%;
-    --input: 60 9% 20%;
-    --ring: 213 94% 68%;
-    --chart-1: 213 94% 68%;
-    --chart-2: 221 83% 53%;
-    --chart-3: 201 30% 47%;
+    --border: 60 3% 20%;
+    --input: 60 3% 20%;
+    --ring: 39 95% 62%;
+    --chart-1: 39 95% 62%;
+    --chart-2: 39 70% 80%;
+    --chart-3: 142 71% 45%;
     --chart-4: 0 0% 94%;
-    --chart-5: 201 30% 70%;
+    --chart-5: 39 50% 45%;
+
+    --qz-accent-text: #faba40;
+    --qz-accent-light: rgba(250, 186, 64, 0.16);
+    --qz-accent-ring: rgba(250, 186, 64, 0.3);
+    --qz-bg: #141414;
+    --qz-surface: #1e1e1e;
+    --qz-surface-2: #2a2a2a;
+    --qz-text: #f0f0ec;
+    --qz-text-sub: #9a9a90;
+    --qz-border: #333330;
+    --qz-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --qz-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+    --qz-correct-bg: rgba(22, 163, 74, 0.2);
+    --qz-incorrect-bg: rgba(220, 38, 38, 0.2);
   }
 }
 
@@ -64,20 +98,21 @@
   }
   body {
     @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
   }
 }
 
 @layer utilities {
   .animate-fadeIn {
-    animation: fadeIn 0.4s ease-out;
+    animation: fadeIn 0.22s ease both;
   }
   .animate-scaleUp {
-    animation: scaleUp 0.3s ease-out;
+    animation: scaleUp 0.2s ease both;
   }
   @keyframes fadeIn {
     from {
       opacity: 0;
-      transform: translateY(8px);
+      transform: translateY(10px);
     }
     to {
       opacity: 1;
@@ -87,11 +122,26 @@
   @keyframes scaleUp {
     from {
       opacity: 0;
-      transform: scale(0.95);
+      transform: translateY(-6px);
     }
     to {
       opacity: 1;
-      transform: scale(1);
+      transform: translateY(0);
     }
   }
+}
+
+/*
+ * 旧クラス（brand-blue）の互換ルール。
+ * brand-blue は金色（#faba40）に変わったため、
+ *   ・金色の塗りの上の文字は、白ではなく濃紺にする
+ *   ・金色を「文字」として使う箇所は、ライトモードでは濃紺、ダークモードでは金色にする
+ * 新しく書く画面は qz-* トークン（text-qz-accent-text など）を使い、
+ * すべての画面を移行し終えたらこのブロックは削除できる。
+ */
+.bg-brand-blue {
+  color: var(--qz-ink);
+}
+.text-brand-blue {
+  color: var(--qz-accent-text);
 }

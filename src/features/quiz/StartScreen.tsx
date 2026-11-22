@@ -1,6 +1,4 @@
-import { AlertTriangle } from "lucide-react";
 import type { QuizMode } from "../../types/quiz";
-import type { QuestionsLoadError } from "../../lib/questions";
 
 interface StartScreenProps {
   mode: QuizMode;
@@ -9,8 +7,6 @@ interface StartScreenProps {
   loading?: boolean;
   rangeOptions: string[];
   rangeLabel?: string;
-  /** 問題マスタの取得エラー（未設定・空・通信失敗） */
-  questionsError?: QuestionsLoadError;
   onChangeMode: (m: QuizMode) => void;
   onChangeRange: (r: string) => void;
   onChangeCount: (c: number | "all") => void;
@@ -19,29 +15,6 @@ interface StartScreenProps {
 
 const COUNTS: (number | "all")[] = [5, 10, 20, "all"];
 
-function questionsErrorMessage(error: QuestionsLoadError): {
-  title: string;
-  body: string;
-} | null {
-  if (!error) return null;
-  if (error === "not-configured") {
-    return {
-      title: "Supabase が設定されていません",
-      body: "VITE_SUPABASE_URL と VITE_SUPABASE_PB_KEY を設定してください。",
-    };
-  }
-  if (error === "empty") {
-    return {
-      title: "問題データがありません",
-      body: "wh_dates に出題可能な出来事が登録されていません。データベースを確認してください。",
-    };
-  }
-  return {
-    title: "問題データの取得に失敗しました",
-    body: "ネットワークや Supabase の状態を確認し、ページを再読み込みしてください。",
-  };
-}
-
 export function StartScreen({
   mode,
   range,
@@ -49,134 +22,168 @@ export function StartScreen({
   loading = false,
   rangeOptions,
   rangeLabel,
-  questionsError = null,
   onChangeMode,
   onChangeRange,
   onChangeCount,
   onStart,
 }: StartScreenProps) {
-  const defaultRangeLabel = mode === "event-to-year" ? "出題地域" : "時代区分";
-  const errorInfo = questionsErrorMessage(questionsError);
-  const canStart = !loading && !questionsError && rangeOptions.length >= 0;
+  const defaultRangeLabel = mode === "event-to-year" ? "出題章" : "時代区分";
 
   return (
-    <div className="w-full bg-white dark:bg-brand-navy-light rounded-2xl border border-slate-200 dark:border-brand-slate/30 shadow-sm p-6 sm:p-8 space-y-6 animate-fadeIn">
-      <div className="text-center space-y-2">
-        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-          Sekaishi Anki
+    <div className="w-full bg-qz-surface border border-qz-border rounded-qz-md sm:rounded-qz-lg shadow-qz-md p-5 sm:p-10 flex flex-col gap-6 animate-fadeIn">
+      <div className="text-center pb-6 border-b border-qz-border">
+        <h2 className="text-2xl sm:text-[1.6rem] font-bold text-qz-text mb-1.5">
+          世界史年代クイズ
         </h2>
-        <p className="text-sm text-slate-500 dark:text-zinc-400">
-          出来事と年代（西暦）の対応を効率よく暗記するためのスマート学習クイズです。
+        <p className="text-sm text-qz-sub">
+          出来事と年号（西暦）の対応を、双方向で効率よく暗記しよう
         </p>
       </div>
 
-      {errorInfo && (
-        <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-800 dark:text-rose-200 flex items-start gap-2">
-          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-          <div className="text-sm leading-relaxed">
-            <p className="font-bold">{errorInfo.title}</p>
-            <p className="opacity-90">{errorInfo.body}</p>
-          </div>
-        </div>
-      )}
-
-      {/* モード選択 */}
-      <div className="space-y-2">
-        <label className="text-xs font-bold text-slate-400 tracking-wide px-1">
-          モード選択
-        </label>
-        <div className="grid grid-cols-2 gap-3">
-          <ModeButton
-            active={mode === "event-to-year"}
+      <Block title="出題モード">
+        <div className="grid grid-cols-2 gap-2.5">
+          <ModeCard
+            selected={mode === "event-to-year"}
             onClick={() => onChangeMode("event-to-year")}
-            label="出来事 ➔ 年代"
+            label="出来事 → 年号"
             sub="記述回答"
           />
-          <ModeButton
-            active={mode === "year-to-event"}
+          <ModeCard
+            selected={mode === "year-to-event"}
             onClick={() => onChangeMode("year-to-event")}
-            label="年代 ➔ 出来事"
+            label="年号 → 出来事"
             sub="4択選択"
           />
         </div>
-      </div>
+      </Block>
 
-      {/* 範囲選択 */}
-      <div className="space-y-2">
-        <label className="text-xs font-bold text-slate-400 tracking-wide px-1">
-          {rangeLabel ?? defaultRangeLabel}
-        </label>
-        <select
-          value={range}
-          onChange={(e) => onChangeRange(e.target.value)}
-          disabled={Boolean(questionsError)}
-          className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-brand-slate/30 bg-slate-50 dark:bg-brand-navy text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent transition appearance-none cursor-pointer disabled:opacity-50"
-        >
-          <option value="all">すべての範囲から出題</option>
+      <Block title={rangeLabel ?? defaultRangeLabel}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+          <RangeItem
+            selected={range === "all"}
+            onClick={() => onChangeRange("all")}
+            label="すべての範囲から出題"
+          />
           {rangeOptions.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
+            <RangeItem
+              key={opt}
+              selected={range === opt}
+              onClick={() => onChangeRange(opt)}
+              label={opt}
+            />
           ))}
-        </select>
-      </div>
+        </div>
+      </Block>
 
-      {/* 問題数 */}
-      <div className="space-y-2">
-        <label className="text-xs font-bold text-slate-400 tracking-wide px-1">
-          問題数
-        </label>
+      <Block title="問題数">
         <div className="grid grid-cols-4 gap-2">
           {COUNTS.map((c) => (
             <button
               key={c}
               type="button"
               onClick={() => onChangeCount(c)}
-              disabled={Boolean(questionsError)}
-              className={`py-2 px-3 rounded-lg border text-xs font-bold transition disabled:opacity-50 ${
+              aria-pressed={count === c}
+              className={`py-2.5 rounded-qz-sm border-[1.5px] text-sm font-semibold transition ${
                 count === c
-                  ? "border-brand-blue bg-brand-blue/10 text-brand-blue ring-1 ring-brand-blue"
-                  : "border-slate-200 dark:border-brand-slate/30 bg-transparent text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-brand-navy-light dark:hover:text-zinc-200"
+                  ? "border-qz-accent bg-qz-accent-light text-qz-text ring-[3px] ring-qz-accent-ring"
+                  : "border-qz-border bg-qz-surface2 text-qz-sub hover:border-qz-accent"
               }`}
             >
               {c === "all" ? "全問" : `${c}問`}
             </button>
           ))}
         </div>
-      </div>
+      </Block>
 
-      <button
-        type="button"
-        onClick={onStart}
-        disabled={!canStart || Boolean(questionsError)}
-        className="w-full py-4 rounded-xl bg-brand-blue hover:bg-brand-sky active:scale-[0.99] text-white font-bold text-sm tracking-wide transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-      >
-        {loading ? "問題データを読み込み中..." : "クイズを開始"}
-      </button>
+      <div className="flex justify-end pt-4 border-t border-qz-border">
+        <button
+          type="button"
+          onClick={onStart}
+          disabled={loading}
+          className="w-full sm:w-auto sm:min-w-[160px] inline-flex items-center justify-center gap-2 px-8 py-3 rounded-qz-sm bg-qz-accent text-qz-ink font-semibold hover:opacity-90 hover:-translate-y-px hover:shadow-qz-md active:scale-[0.98] transition disabled:opacity-40 disabled:pointer-events-none"
+        >
+          {loading ? "問題データを読み込み中..." : "クイズを開始する"}
+          {!loading && <span aria-hidden>→</span>}
+        </button>
+      </div>
     </div>
   );
 }
 
-interface ModeButtonProps {
-  active: boolean;
+function Block({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="flex flex-col gap-2">
+      <h3 className="pb-2 mb-1 border-b border-qz-border text-xs font-bold uppercase tracking-[0.06em] text-qz-sub">
+        {title}
+      </h3>
+      {children}
+    </section>
+  );
+}
+
+function ModeCard({
+  selected,
+  onClick,
+  label,
+  sub,
+}: {
+  selected: boolean;
   onClick: () => void;
   label: string;
   sub: string;
-}
-
-function ModeButton({ active, onClick, label, sub }: ModeButtonProps) {
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-col items-center justify-center p-4 rounded-xl border text-center transition-all ${
-        active
-          ? "border-brand-blue bg-brand-blue/10 text-slate-900 dark:text-zinc-50 shadow-sm ring-1 ring-brand-blue"
-          : "border-slate-200 dark:border-brand-slate/30 bg-transparent text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-brand-navy-light dark:hover:text-zinc-200"
+      aria-pressed={selected}
+      className={`flex flex-col items-center justify-center gap-0.5 px-3 py-4 rounded-qz-md border-[1.5px] text-center transition ${
+        selected
+          ? "border-qz-accent bg-qz-accent-light ring-[3px] ring-qz-accent-ring"
+          : "border-qz-border bg-qz-surface2 hover:border-qz-accent"
       }`}
     >
-      <span className="font-bold text-sm">{label}</span>
-      <span className="text-xs text-slate-400 mt-1 font-semibold">{sub}</span>
+      <span className="text-sm font-bold text-qz-text">{label}</span>
+      <span className="text-[11px] font-semibold text-qz-sub">{sub}</span>
+    </button>
+  );
+}
+
+function RangeItem({
+  selected,
+  onClick,
+  label,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-qz-sm border-[1.5px] text-left text-sm text-qz-text transition ${
+        selected
+          ? "border-qz-accent bg-qz-accent-light"
+          : "border-qz-border bg-qz-surface2 hover:border-qz-accent"
+      }`}
+    >
+      <span
+        aria-hidden
+        className={`shrink-0 w-3.5 h-3.5 rounded-full border-[1.5px] transition ${
+          selected
+            ? "border-qz-accent bg-qz-accent shadow-[inset_0_0_0_3px_var(--qz-surface)]"
+            : "border-qz-border"
+        }`}
+      />
+      <span className="leading-snug">{label}</span>
     </button>
   );
 }
