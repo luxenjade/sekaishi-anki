@@ -3,16 +3,26 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import { Landing } from "./features/landing/Landing";
 import { NotFound } from "./features/landing/NotFound";
+import type { SitePageId } from "./SitePages";
 
 // アプリ本体（Supabase・グラフなど重い依存を含む）は /app を開いたときだけ読み込む
 const AppRoot = lazy(() => import("./AppRoot"));
+// About / FAQ / プライバシーポリシーも、開いたときだけ読み込む
+const SitePages = lazy(() => import("./SitePages"));
 
-function isAppPath(pathname: string): boolean {
-  return pathname === "/app" || pathname.startsWith("/app/");
+const SITE_PAGE_ROUTES: Record<string, SitePageId> = {
+  "/about": "about",
+  "/faq": "faq",
+  "/privacy-policy": "privacy-policy",
+};
+
+/** 末尾のスラッシュを除く（"/faq/" → "/faq"）。ルート "/" はそのまま */
+function normalize(pathname: string): string {
+  return pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
 }
 
-function isLandingPath(pathname: string): boolean {
-  return pathname === "/" || pathname === "/index.html";
+function isAppPath(path: string): boolean {
+  return path === "/app" || path.startsWith("/app/");
 }
 
 function Splash() {
@@ -24,16 +34,25 @@ function Splash() {
 }
 
 function Root() {
-  const { pathname } = window.location;
+  const path = normalize(window.location.pathname);
 
-  if (isAppPath(pathname)) {
+  if (isAppPath(path)) {
     return (
       <Suspense fallback={<Splash />}>
         <AppRoot />
       </Suspense>
     );
   }
-  if (isLandingPath(pathname)) return <Landing />;
+  if (path === "/" || path === "/index.html") return <Landing />;
+
+  const sitePage = SITE_PAGE_ROUTES[path];
+  if (sitePage) {
+    return (
+      <Suspense fallback={<Splash />}>
+        <SitePages page={sitePage} />
+      </Suspense>
+    );
+  }
   return <NotFound />;
 }
 

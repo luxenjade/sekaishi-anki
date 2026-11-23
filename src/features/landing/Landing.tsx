@@ -1,16 +1,13 @@
 import {
   ArrowRight,
   BarChart3,
-  Calendar,
   Layers,
-  Moon,
   RotateCcw,
   Shuffle,
-  Sun,
   Tags,
   Users,
 } from "lucide-react";
-import { useTheme } from "../../hooks/useTheme";
+import { SiteShell } from "../site/SiteShell";
 
 const APP_PATH = "/app";
 
@@ -67,44 +64,8 @@ const STEPS: { title: string; body: string }[] = [
 ];
 
 export function Landing() {
-  const { theme, toggle } = useTheme();
-
   return (
-    <div className="min-h-screen bg-qz-bg text-qz-text font-sans">
-      {/* ヘッダー */}
-      <header className="sticky top-0 z-40 bg-qz-surface/90 backdrop-blur border-b border-qz-border">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <a
-            href="/"
-            className="flex items-center gap-2 font-bold tracking-tight text-qz-text"
-          >
-            <Calendar className="w-5 h-5 text-qz-accent-text" />
-            sekaishi-anki
-          </a>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={toggle}
-              aria-label={theme === "dark" ? "ライトモードにする" : "ダークモードにする"}
-              className="w-9 h-9 rounded-full border border-qz-border text-qz-sub hover:border-qz-accent hover:text-qz-text flex items-center justify-center transition"
-            >
-              {theme === "dark" ? (
-                <Sun className="w-4 h-4" />
-              ) : (
-                <Moon className="w-4 h-4" />
-              )}
-            </button>
-            <a
-              href={APP_PATH}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-qz-sm bg-qz-accent text-qz-ink text-sm font-semibold hover:opacity-90 transition"
-            >
-              アプリを開く
-            </a>
-          </div>
-        </div>
-      </header>
-
-      <main>
+    <SiteShell>
         {/* ヒーロー */}
         <section className="max-w-5xl mx-auto px-4 pt-14 pb-16 sm:pt-20 grid gap-12 lg:grid-cols-2 lg:items-center">
           <div className="space-y-6">
@@ -205,17 +166,7 @@ export function Landing() {
             </a>
           </div>
         </section>
-      </main>
-
-      <footer className="border-t border-qz-border">
-        <div className="max-w-5xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-qz-sub">
-          <p>© luxenjade</p>
-          <a href={APP_PATH} className="hover:text-qz-text hover:underline">
-            アプリを開く
-          </a>
-        </div>
-      </footer>
-    </div>
+      </SiteShell>
   );
 }
 

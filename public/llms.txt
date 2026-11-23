@@ -8,6 +8,9 @@ sekaishi-anki は、出来事から年号を入力する記述式クイズと、
 
 - [紹介ページ](https://luxenjade.netlify.app/): アプリの特長と使い方
 - [アプリ本体](https://luxenjade.netlify.app/app): クイズ・統計・投稿・設定（ログインして利用）
+- [このアプリについて](https://luxenjade.netlify.app/about): 目的、問題データの考え方、運営者
+- [よくある質問](https://luxenjade.netlify.app/faq): 使い方、問題、データとアカウントについて
+- [プライバシーポリシー](https://luxenjade.netlify.app/privacy-policy): 取得する情報と利用目的
 
 ## Features
 

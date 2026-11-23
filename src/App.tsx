@@ -12,6 +12,8 @@ import { mockHistoryData } from "./data/mockEvents";
 import { useQuiz } from "./hooks/useQuiz";
 import { useTheme } from "./hooks/useTheme";
 import { useUserData } from "./hooks/useUserData";
+import { useOnlineStatus } from "./hooks/useOnlineStatus";
+import { InstallBanner, OfflineBanner } from "./components/pwa/PwaBanners";
 import { useAuth, type QuizAnswer } from "./contexts/AuthContext";
 import {
   fetchQuestions,
@@ -42,6 +44,7 @@ export default function App() {
   } = useAuth();
 
   const { theme, setTheme } = useTheme(profile?.theme);
+  const isOnline = useOnlineStatus();
 
   const [activeTab, setActiveTab] = useState<AppTab>("quiz");
   const [questionPool, setQuestionPool] =
@@ -90,6 +93,9 @@ export default function App() {
       isCorrect: !wrongIds.has(item.id),
     }));
     const items = quiz.items;
+
+    // オンライン版でオフラインのときは、保存を試みない（バナーで案内済み）
+    if (!isOfflineMode && !navigator.onLine) return;
 
     void (async () => {
       const res = await saveQuizResults(answers);
@@ -277,9 +283,7 @@ export default function App() {
     return (
       <div className="min-h-screen bg-qz-bg text-qz-text flex flex-col justify-center items-center font-sans">
         <div className="w-10 h-10 border-4 border-brand-blue border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-xs font-bold text-slate-400 mt-4 tracking-wider uppercase">
-          Loading Session...
-        </p>
+        <p className="text-xs font-bold text-slate-400 mt-4 tracking-wider uppercase">Loading Session...</p>
       </div>
     );
   }
@@ -305,10 +309,13 @@ export default function App() {
           inQuiz ? "pb-8" : "pb-24"
         }`}
       >
+        {!isOnline && <OfflineBanner />}
+
         {activeTab === "quiz" && (
           <>
             {quiz.screen === "start" && (
               <>
+                <InstallBanner />
                 {showFallbackNotice && (
                   <div className="mb-4 p-3 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-800 dark:text-amber-200 text-[11px] font-semibold leading-relaxed">
                     {fallbackReason === "empty"
@@ -388,8 +395,7 @@ export default function App() {
         {activeTab === "settings" && (
           <SettingsTab
             account={{
-              username:
-                profile?.username || user.email?.split("@")[0] || "User",
+              username: profile?.username || user.email?.split("@")[0] || "User",
               email: user.email ?? "",
             }}
             isSynced={!isOfflineMode}
@@ -405,11 +411,7 @@ export default function App() {
       </main>
 
       {!inQuiz && (
-        <BottomNav
-          active={activeTab}
-          onChange={setActiveTab}
-          showAdmin={isAdmin}
-        />
+        <BottomNav active={activeTab} onChange={setActiveTab} showAdmin={isAdmin} />
       )}
     </div>
   );

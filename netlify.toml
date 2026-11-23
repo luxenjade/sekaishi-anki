@@ -2,6 +2,19 @@
   command = "pnpm run build"
   publish = "dist"
 
+# service worker は常に最新を取りに行かせる（更新が反映されなくなるのを防ぐ）
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"
+    Cache-Control = "public, max-age=3600"
+
+# SPA: 実ファイルが無いパスは index.html を返す（/app などのルーティング用）
 [[redirects]]
   from = "/*"
   to = "/index.html"
