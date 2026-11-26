@@ -14,7 +14,8 @@ const inputClass =
  * 「やめる」を選んだときは、サインアウトして元に戻す。
  */
 export function ResetPasswordScreen() {
-  const { updatePassword, finishPasswordRecovery, cancelPasswordRecovery } = useAuth();
+  const { updatePassword, finishPasswordRecovery, cancelPasswordRecovery } =
+    useAuth();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -55,8 +56,12 @@ export function ResetPasswordScreen() {
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-qz-md bg-qz-correct-bg text-qz-correct">
               <CheckCircle2 className="w-6 h-6" />
             </div>
-            <h2 className="text-2xl font-bold tracking-tight">パスワードを変更しました</h2>
-            <p className="text-sm text-qz-sub">次回から、新しいパスワードでログインできます。</p>
+            <h2 className="text-2xl font-bold tracking-tight">
+              パスワードを変更しました
+            </h2>
+            <p className="text-sm text-qz-sub">
+              次回から、新しいパスワードでログインできます。
+            </p>
             <button
               type="button"
               onClick={finishPasswordRecovery}
@@ -71,7 +76,9 @@ export function ResetPasswordScreen() {
               <div className="inline-flex items-center justify-center w-12 h-12 rounded-qz-md bg-qz-accent-light border border-qz-accent text-qz-accent-text mb-1">
                 <ShieldCheck className="w-6 h-6" />
               </div>
-              <h2 className="text-2xl font-bold tracking-tight">新しいパスワードの設定</h2>
+              <h2 className="text-2xl font-bold tracking-tight">
+                新しいパスワードの設定
+              </h2>
               <p className="text-xs text-qz-sub">
                 新しいパスワードを入力してください（{MIN_LENGTH}文字以上）
               </p>
@@ -136,7 +143,13 @@ export function ResetPasswordScreen() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
       <label className="text-[10px] font-bold text-qz-sub uppercase tracking-widest px-1 flex items-center gap-1.5">
