@@ -8,6 +8,7 @@ import { SubmitTab, type SubmitFormState } from "./features/submit/SubmitTab";
 import { SettingsTab } from "./features/settings/SettingsTab";
 import { AdminTab } from "./features/admin/AdminTab";
 import { AuthScreen } from "./features/auth/AuthScreen";
+import { ResetPasswordScreen } from "./features/auth/ResetPasswordScreen";
 import { mockHistoryData } from "./data/mockEvents";
 import { useQuiz } from "./hooks/useQuiz";
 import { useTheme } from "./hooks/useTheme";
@@ -32,6 +33,7 @@ export default function App() {
     loading,
     isOfflineMode,
     isAdmin,
+    isPasswordRecovery,
     updateProfile,
     updateTheme,
     dismissReviewItem,
@@ -286,6 +288,11 @@ export default function App() {
         <p className="text-xs font-bold text-slate-400 mt-4 tracking-wider uppercase">Loading Session...</p>
       </div>
     );
+  }
+
+  // パスワード再設定メールのリンクから戻ってきたときは、新しいパスワードの入力画面だけを出す
+  if (user && isPasswordRecovery) {
+    return <ResetPasswordScreen />;
   }
 
   // 未ログインなら認証画面のみ

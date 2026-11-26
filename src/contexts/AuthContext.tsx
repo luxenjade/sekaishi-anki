@@ -38,10 +38,22 @@ export interface AuthContextType {
   isOfflineMode: boolean;
   /** admin_users に登録されているか（画面表示用。実際の権限は DB 側の RLS / RPC が守る） */
   isAdmin: boolean;
-  signUp: (email: string, password: string, username: string) => Promise<AuthResult>;
+  /** パスワード再設定メールのリンクから戻ってきた状態（新しいパスワードの入力待ち） */
+  isPasswordRecovery: boolean;
+  signUp: (
+    email: string,
+    password: string,
+    username: string,
+  ) => Promise<AuthResult>;
   signIn: (email: string, password: string) => Promise<AuthResult>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<AuthResult>;
+  /** 再設定リンクで入った状態で、新しいパスワードを保存する */
+  updatePassword: (newPassword: string) => Promise<AuthResult>;
+  /** 再設定を終えて、通常のアプリ画面へ進む */
+  finishPasswordRecovery: () => void;
+  /** 再設定をやめる（再設定用のセッションはサインアウトする） */
+  cancelPasswordRecovery: () => Promise<void>;
   deleteAccount: () => Promise<AuthResult>;
   updateProfile: (username: string) => Promise<AuthResult>;
   updateTheme: (theme: Profile["theme"]) => Promise<void>;
@@ -66,6 +78,24 @@ export const useAuth = () => {
 };
 
 const OFFLINE_USER_KEY = "sekaishi-mock-user";
+const RECOVERY_KEY = "sekaishi-password-recovery";
+
+function readRecoveryFlag(): boolean {
+  try {
+    return sessionStorage.getItem(RECOVERY_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeRecoveryFlag(on: boolean): void {
+  try {
+    if (on) sessionStorage.setItem(RECOVERY_KEY, "1");
+    else sessionStorage.removeItem(RECOVERY_KEY);
+  } catch {
+    /* sessionStorage が使えない環境では、リロード時に画面が戻らないだけ */
+  }
+}
 const OFFLINE_PROFILE_KEY = "sekaishi-profile";
 
 function defaultOfflineProfile(userId: string, username: string): Profile {
@@ -84,7 +114,11 @@ function defaultOfflineProfile(userId: string, username: string): Profile {
 }
 
 /** オフライン（デモ）モード用: サーバー RPC と同じ規則でプロフィール集計を更新 */
-function applyResultsToProfile(p: Profile, score: number, total: number): Profile {
+function applyResultsToProfile(
+  p: Profile,
+  score: number,
+  total: number,
+): Profile {
   const today = new Date().toLocaleDateString("en-CA");
   const yesterday = new Date(Date.now() - 86400000).toLocaleDateString("en-CA");
 
@@ -113,6 +147,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
   const [isOfflineMode, setIsOfflineMode] = useState(!isSupabaseConfigured());
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isPasswordRecovery, setIsPasswordRecovery] =
+    useState(readRecoveryFlag);
+
+  const setRecovery = useCallback((on: boolean) => {
+    writeRecoveryFlag(on);
+    setIsPasswordRecovery(on);
+  }, []);
 
   const configured = isSupabaseConfigured();
   const userId = user?.id ?? null;
@@ -178,12 +219,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) fetchProfile(s.user.id, s.user.email);
+      else setRecovery(false); // セッションが無いのに再設定中の印だけ残るのを防ぐ
       setLoading(false);
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, s) => {
+    } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === "PASSWORD_RECOVERY") setRecovery(true);
+      if (event === "SIGNED_OUT") setRecovery(false);
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) fetchProfile(s.user.id, s.user.email);
@@ -192,7 +236,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     return () => subscription.unsubscribe();
-  }, [configured, fetchProfile]);
+  }, [configured, fetchProfile, setRecovery]);
 
   // admin 判定（画面の出し分け用）。権限そのものは RLS / RPC が守る
   useEffect(() => {
@@ -252,7 +296,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return { error };
   };
 
-  const signIn = async (email: string, password: string): Promise<AuthResult> => {
+  const signIn = async (
+    email: string,
+    password: string,
+  ): Promise<AuthResult> => {
     if (!configured || isOfflineMode) {
       const mockUserStr = localStorage.getItem(OFFLINE_USER_KEY);
       let u = mockUserStr
@@ -272,7 +319,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       return { error: null };
     }
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     return { error };
   };
 
@@ -290,13 +340,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const resetPassword = async (email: string): Promise<AuthResult> => {
     if (!configured || isOfflineMode) {
-      return { error: new Error("パスワードリセットはオンライン認証が必要です。") };
+      return {
+        error: new Error("パスワードリセットはオンライン認証が必要です。"),
+      };
     }
     const redirectTo = `${window.location.origin}/app`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo,
     });
     return { error };
+  };
+
+  const updatePassword = async (newPassword: string): Promise<AuthResult> => {
+    if (!configured || isOfflineMode) {
+      return {
+        error: new Error("パスワードの変更にはオンライン認証が必要です。"),
+      };
+    }
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    return { error };
+  };
+
+  const finishPasswordRecovery = () => setRecovery(false);
+
+  const cancelPasswordRecovery = async () => {
+    setRecovery(false);
+    await signOut();
   };
 
   /** アカウント削除（DB 側 RPC が原子的に処理。失敗時はサインアウトしない） */
@@ -381,7 +450,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return { error };
   };
 
-  const saveQuizResults = async (answers: QuizAnswer[]): Promise<AuthResult> => {
+  const saveQuizResults = async (
+    answers: QuizAnswer[],
+  ): Promise<AuthResult> => {
     if (!user || answers.length === 0) return { error: null };
 
     // オフライン: サーバー RPC と同じ規則でローカルのプロフィールを更新
@@ -398,7 +469,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     // モックの "wh-1" のような非数値IDは保存できないので除外
     const persistable = answers
       .filter((a) => isPersistableQuestionId(a.questionId))
-      .map((a) => ({ question_id: Number(a.questionId), is_correct: a.isCorrect }));
+      .map((a) => ({
+        question_id: Number(a.questionId),
+        is_correct: a.isCorrect,
+      }));
     if (persistable.length === 0) return { error: null };
 
     const { error } = await supabase.rpc("record_quiz_result", {
@@ -443,10 +517,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         loading,
         isOfflineMode,
         isAdmin,
+        isPasswordRecovery,
         signUp,
         signIn,
         signOut,
         resetPassword,
+        updatePassword,
+        finishPasswordRecovery,
+        cancelPasswordRecovery,
         deleteAccount,
         updateProfile,
         updateTheme,
